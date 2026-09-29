@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import RoleSelector from './RoleSelector'
 
-const RegistrationForm = ({ role, onRoleChange }) => {
+const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
   const [loading,setLoading] = useState(false);
   const [error, setError]= useState("");
   const [success, setSuccess] = useState("");
+  const navigate = useNavigate();
 
   const isApplicant = role === 'applicant'
 
@@ -74,6 +76,7 @@ const RegistrationForm = ({ role, onRoleChange }) => {
     }
 
     setSuccess(data.message || "Your account was created successfully.");
+    navigate("/login");
 
   }catch(err){
     setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
@@ -150,7 +153,7 @@ const RegistrationForm = ({ role, onRoleChange }) => {
           {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
           {success && <p className="text-sm text-green-700" role="status">{success}</p>}
           <button className="w-full rounded-lg bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200" type="submit" disabled={loading}>{loading ? "Creating Account..." : "Create Account"}</button>
-          <p className="text-center text-xs text-slate-500">Already have an account? <a className="font-semibold text-blue-600 hover:underline" href="#login">Log in here</a></p>
+          <p className="text-center text-xs text-slate-500">Already have an account? <button className="font-semibold text-blue-600 hover:underline" type="button" onClick={onShowLogin}>Log in here</button></p>
         </form>
       </div>
     </section>
