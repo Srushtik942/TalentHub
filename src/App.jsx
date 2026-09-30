@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom'
 import BrandPanel from './components/BrandPanel'
 import RegistrationForm from './components/RegistrationForm'
 import Login from './components/Login'
+import Dashboard from './components/Applicants/Dashboard'
 import './App.css'
 
 function Register() {
@@ -29,7 +30,7 @@ function App() {
     <Routes>
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login onRegister={() => window.location.href = '/register'} />} />
-      <Route path="/dashboard" element={<h1>Dashboard</h1>} />
+      <Route path="/dashboard" element={<Dashboard/>} />
     </Routes>
   )
 }
