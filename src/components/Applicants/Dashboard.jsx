@@ -1,4 +1,5 @@
 import { useState,useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 function Icon({ name, className = 'h-4 w-4' }) {
   const common = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
@@ -25,6 +26,7 @@ function toggleValue(values, value) {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate()
 
   const [search, setSearch] = useState('')
   const [location, setLocation] = useState('')
@@ -41,8 +43,15 @@ const Dashboard = () => {
 
   const locations = [...new Set(jobs.map((job) => job.location).filter(Boolean))]
   const experienceOptions = [...new Set(jobs.map((job) => job.experience).filter(Boolean).map(String))]
-  const employmentOptions = [...new Set(jobs.map((job) => job.type).filter(Boolean))]
+  const employmentOptions = [...new Set([
+    'full-time',
+  'part-time',
+  'internship',
+  'contract',
+    ...jobs.map((job) => job.employmentType).filter(Boolean),
+  ])]
 
+console.log("employmentOptions",employmentOptions)
 
 useEffect(() => {
   const fetchJobs = async () => {
@@ -61,9 +70,10 @@ useEffect(() => {
 
     const data = await response.json();
     console.log("data",data);
-    const recruiterJobs = data.jobs.filter((job) => job.isExternal === false);
-    console.log("data", recruiterJobs);
-    console.log("jobs",data?.jobs);
+    // setJobs(Array.isArray(data?.jobs) ? data.jobs : []);
+      const recruiterJobs = data.jobs.filter((job) => job.isExternal === false);
+    console.log("data", recruiterJobs );
+    // console.log("jobs",recruiterJobs?.jobs);
 
     setJobs(recruiterJobs);
   };
@@ -89,7 +99,7 @@ let filteredJobs = jobs.filter((job) => {
     experience.includes(String(job.experience))
 
   const matchesEmployment =
-    employment.length === 0 || employment.includes(job.type)
+    employment.length === 0 || employment.includes(job.employmentType)
 
   const matchesSalary =
     job.salaryMax >= salaryMin * 100000 &&
@@ -248,6 +258,9 @@ if (sortBy === 'Salary: High to Low') {
 </span>                      <span className="flex items-center gap-1.5"><span aria-hidden="true">◷</span>{job.experience} years</span>
                       <span className="flex items-center gap-1.5"><Icon name="pin" className="h-3.5 w-3.5" />{job.location}</span>
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">{job.type}</span>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <button className="rounded-md bg-[#2878c7] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1f65a8]" type="button" onClick={() => navigate('/login')}>Apply</button>
                     </div>
                   </div>
                 </div>
