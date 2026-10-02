@@ -4,6 +4,7 @@ import BrandPanel from './components/BrandPanel'
 import RegistrationForm from './components/RegistrationForm'
 import Login from './components/Login'
 import Dashboard from './components/Applicants/Dashboard'
+import JobDetails from './components/Applicants/JobDetails'
 import LandingPage from './components/LandingPage'
 import './App.css'
 
@@ -32,7 +33,8 @@ function App() {
       <Route path='/' element={<LandingPage />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login onRegister={() => window.location.href = '/register'} />} />
-      <Route path="/dashboard" element={<Dashboard/>} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/job-details/:jobId" element={<JobDetails />} />
     </Routes>
   )
 }
