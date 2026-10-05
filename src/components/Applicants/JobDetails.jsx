@@ -69,6 +69,12 @@ function JobDetails() {
   const [saved, setSaved] = useState(false);
   const [loading,setLoading] = useState(true);
   const [error,setError] = useState('');
+  const [question, setQuestion] = useState("");
+  const [topicsToRevise, setTopicsToRevise] = useState([]);
+  const [preparationTips, setPreparationTips] = useState("");
+  const [generatingQuestions, setGeneratingQuestions] = useState(false);
+  const [similarJobs, setSimilarJobs] = useState([]);
+
 
   useEffect(()=>{
     const fetchJob = async()=>{
@@ -114,6 +120,69 @@ const skills = (job.requiredSkills ?? '')
     month:'short',
     year:'numeric'
   })
+
+  const onClickGenerateQuestionButton = async()=>{
+   try{
+    setGeneratingQuestions(true);
+
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      `${import.meta.env.VITE_BACKEND_API}/api/applicant/ai-interview-prep/${jobId}`,
+      {
+        headers:{
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    console.log("response",response);
+
+    if(!response.ok){
+    throw new Error("Failed to generate questions");
+    }
+
+    const data = await response.json();
+    console.log("data",data);
+
+    setQuestion(data.result.interviewQuestions);
+    setTopicsToRevise(data.result.topicsToRevise);
+    setPreparationTips(data.result.preparationTips);
+
+   }catch(err){
+    console.error(err);
+   }finally{
+    setGeneratingQuestions(false);
+   }
+  };
+
+  const onClickViewJobs = async()=>{
+    try{
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/api/applicant/jobs/search?title=${encodeURIComponent(job.title)}&excludeId=${job._id}`,
+      {
+        headers:{
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+      console.log("response",response);
+
+      if(!response.ok){
+        throw new Error(`Data with ${title} is missing`);
+      }
+
+      const data = await response.json();
+      console.log("data",data);
+      console.log("data",data?.jobs);
+
+      setSimilarJobs(data?.jobs);
+
+    }catch(error){
+      console.error(error);
+    }
+  }
 
 
   return (
@@ -218,10 +287,69 @@ const skills = (job.requiredSkills ?? '')
                 <button
                   type="button"
                   className="rounded-lg bg-[#1d4ed8] py-2 px-1 text-sm font-semibold text-white transition hover:bg-[#1e40af]"
+                  onClick={onClickGenerateQuestionButton}
+                  disabled= {generatingQuestions}
                 >
-                  Generate Questions
+                 {generatingQuestions ? 'Generating...' :' Generate Questions'}
                 </button>
               </div>
+            {question.length > 0 && (
+  <div className="mt-6 space-y-6">
+
+    {/* Interview Questions */}
+    <div>
+      <h4 className="font-semibold text-slate-900">
+        Interview Questions
+      </h4>
+
+      <div className="mt-3 space-y-3">
+        {question.map((item, index) => (
+          <div
+            key={index}
+            className="rounded-lg border border-slate-200 bg-white p-4"
+          >
+            <p className="text-sm leading-6 text-slate-700">
+              <span className="font-semibold text-slate-900">
+                {index + 1}.{" "}
+              </span>
+              {item}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Topics to Revise */}
+    <div>
+      <h4 className="font-semibold text-slate-900">
+        Topics to Revise
+      </h4>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {topicsToRevise.map((topic, index) => (
+          <span
+            key={index}
+            className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-700"
+          >
+            {topic}
+          </span>
+        ))}
+      </div>
+    </div>
+
+    {/* Preparation Tips */}
+    <div>
+      <h4 className="font-semibold text-slate-900">
+        Preparation Tips
+      </h4>
+
+      <p className="mt-2 text-sm leading-6 text-slate-700">
+        {preparationTips}
+      </p>
+    </div>
+
+  </div>
+)}
             </div>
           </section>
 
@@ -286,9 +414,42 @@ const skills = (job.requiredSkills ?? '')
                 ))}
               </div> */}
 
-              <button type="button" className="mt-4 text-sm font-semibold text-blue-700 hover:text-blue-800">
+              <button
+               type="button" className="mt-5 text-sm font-semibold text-blue-700 hover:text-blue-800 cursor-pointer"
+               onClick={onClickViewJobs}
+               >
                 View all similar jobs
               </button>
+              {similarJobs.length > 0 && (
+                <div className='mt-4'>
+                  {similarJobs.map((similarJob)=>(
+                     <div
+        key={similarJob._id}
+        className="flex items-center gap-3 border-b border-slate-100 pb-3"
+      >
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0f172a] text-lg font-bold text-white">
+          {similarJob?.companyName?.charAt(0)}
+
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-base font-semibold text-slate-900">
+            {similarJob.title}
+          </p>
+
+          <p className="text-sm text-slate-600">
+            {similarJob.companyName}
+          </p>
+
+          {/* <p className="text-sm text-slate-500">
+            {similarJob.location}
+          </p> */}
+        </div>
+      </div>
+                  ))}
+                </div>
+
+              )}
             </div>
           </aside>
         </div>

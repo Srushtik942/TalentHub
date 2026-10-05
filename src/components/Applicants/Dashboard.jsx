@@ -238,9 +238,10 @@ if (sortBy === 'Salary: High to Low') {
             <legend className="mb-3 text-sm font-semibold text-slate-800">Salary Range</legend>
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-sm text-slate-500"><span className="w-7">From</span><input className="h-1.5 w-full cursor-pointer accent-blue-600" type="range" min="0" max="50" value={salaryMin} onChange={(event) => setSalaryMin(Math.min(Number(event.target.value), salaryMax))} aria-label="Minimum salary in LPA" /></label>
+              <div className="mt-2 flex justify-between text-sm text-slate-500"><span>₹{salaryMin} LPA</span></div>
               <label className="flex items-center gap-2 text-sm text-slate-500"><span className="w-7">To</span><input className="h-1.5 w-full cursor-pointer accent-blue-600" type="range" min="0" max="50" value={salaryMax} onChange={(event) => setSalaryMax(Math.max(Number(event.target.value), salaryMin))} aria-label="Maximum salary in LPA" /></label>
             </div>
-            <div className="mt-2 flex justify-between text-sm text-slate-500"><span>₹{salaryMin} LPA</span><span>₹{salaryMax} LPA{salaryMax === 50 ? '+' : ''}</span></div>
+            <div className="mt-2 flex justify-between text-sm text-slate-500"><span>₹{salaryMax} LPA{salaryMax === 50 ? '+' : ''}</span></div>
           </fieldset>
 
           <fieldset className="mb-6 space-y-2.5">
