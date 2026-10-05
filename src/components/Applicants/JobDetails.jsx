@@ -74,6 +74,8 @@ function JobDetails() {
   const [preparationTips, setPreparationTips] = useState("");
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
   const [similarJobs, setSimilarJobs] = useState([]);
+  const [applyJobs, setApplyJobs] = useState([]);
+  const [applyLoading,setApplyLoading] = useState("");
 
 
   useEffect(()=>{
@@ -184,18 +186,44 @@ const skills = (job.requiredSkills ?? '')
     }
   }
 
+  const onClickApplyJobs = async()=>{
+    try{
+
+      setApplyLoading(true);
+
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/api/applicant/jobs/${jobId}/apply`,
+        {
+           method:"POST",
+          headers:{
+            Authorization: `Bearer ${token}`,
+             "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        }
+      );
+      console.log("response",response);
+
+      const data = await response.json();
+
+      if(!response.ok){
+        throw new Error(data?.message || "Failed to apply");
+      }
+
+      setApplyJobs((prev)=> [...prev, data.application]);
+      setApplied(true);
+    }catch(error){
+      console.error(error);
+    }finally {
+    setApplyLoading(false);
+  }
+  }
+
 
   return (
     <div className="min-h-screen bg-[#f3f6fb] text-slate-900">
-      {/* <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-5 py-4 sm:px-8 lg:px-10">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1d4ed8] text-lg font-bold text-white shadow-sm">
-            T
-          </div>
-          <span className="text-[2rem] font-black tracking-tight text-slate-900">TalentHub</span>
-        </div>
-      </header> */}
-
       <main className="w-full px-5 py-7 sm:px-8 lg:px-10">
         <button
           type="button"
@@ -254,19 +282,6 @@ const skills = (job.requiredSkills ?? '')
               <h2 className="text-[1.1rem] font-semibold text-slate-900">Job Description</h2>
               <p className="mt-4 text-base leading-8 text-slate-700">{job?.jobDescription}</p>
             </div>
-
-            {/* <div className="mt-8">
-              <h3 className="text-[1.1rem] font-semibold text-slate-900">Responsibilities</h3>
-              <ul className="mt-4 space-y-3 text-base text-slate-700">
-                {job.map((item) => (
-                  <li key={item} className="flex items-start gap-3">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-slate-800" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div> */}
-
             <div className="mt-8">
               <h3 className="text-[1.1rem] font-semibold text-slate-900">Skills</h3>
               <div className="mt-4 flex flex-wrap gap-3">
@@ -358,14 +373,13 @@ const skills = (job.requiredSkills ?? '')
               <h2 className="text-[1.1rem] font-semibold text-slate-900">Apply for this job</h2>
               <button
                 type="button"
-                onClick={() => setApplied((current) => !current)}
+                onClick={onClickApplyJobs}
                 className={`mt-5 w-full rounded-xl px-4 py-3 text-base font-semibold transition ${
                   applied ? 'bg-[#0f172a] text-white hover:bg-[#111827]' : 'bg-[#1d4ed8] text-white hover:bg-[#1e40af]'
                 }`}
               >
-                {applied ? 'Applied' : 'Apply Now'}
+               { applyLoading ? 'Please wait...' : applied ? 'Withdraw Application' : 'Apply Now'}
               </button>
-
               <button
                 type="button"
                 onClick={() => setSaved((current) => !current)}
@@ -398,22 +412,6 @@ const skills = (job.requiredSkills ?? '')
 
             <div className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-sm">
               <h3 className="text-[1.1rem] font-semibold text-slate-900">Similar Jobs</h3>
-
-              {/* <div className="mt-4 space-y-4">
-                {job.similarJobs.map((similarJob, index) => (
-                  <div key={similarJob.title} className="flex items-center gap-3 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
-                    <div className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg font-bold text-white ${index % 2 === 0 ? 'bg-[#0f172a]' : 'bg-[#e2e8f0] text-slate-700'}`}>
-                      {similarJob.title.charAt(0)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-base font-semibold text-slate-900">{similarJob.title}</p>
-                      <p className="text-sm text-slate-600">{similarJob.company}</p>
-                      <p className="text-sm text-slate-500">{similarJob.location}</p>
-                    </div>
-                  </div>
-                ))}
-              </div> */}
-
               <button
                type="button" className="mt-5 text-sm font-semibold text-blue-700 hover:text-blue-800 cursor-pointer"
                onClick={onClickViewJobs}
@@ -440,16 +438,11 @@ const skills = (job.requiredSkills ?? '')
           <p className="text-sm text-slate-600">
             {similarJob.companyName}
           </p>
-
-          {/* <p className="text-sm text-slate-500">
-            {similarJob.location}
-          </p> */}
         </div>
       </div>
-                  ))}
-                </div>
-
-              )}
+      ))}
+</div>
+           )}
             </div>
           </aside>
         </div>
