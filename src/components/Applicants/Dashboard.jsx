@@ -276,9 +276,12 @@ if (sortBy === 'Salary: High to Low') {
 
           <div className="space-y-3">
             {visibleJobs.map((job, index) => (
-              <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:border-blue-200 hover:shadow-sm sm:px-5 sm:py-4" key={job.id}>
+              <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:border-blue-200 hover:shadow-sm sm:px-5 sm:py-4" key={job._id}>
                 <div className="flex items-start gap-3.5">
-                  <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg text-2xl font-bold text-white ${job.color}`}>{job.mark}</div>
+                  {/* <div className={`grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg text-2xl font-bold text-white ${job.color}`}>{job.mark}</div> */}
+                  <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-blue-800 text-lg font-bold text-white">
+                     {job.companyName?.trim().charAt(0).toUpperCase() || '?'}
+                    </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -301,7 +304,7 @@ if (sortBy === 'Salary: High to Low') {
                       <span className="flex items-center gap-1.5">  Posted on {formatDate(job.createdAt)}</span>
                     </div>
                     <div className="mt-4 flex justify-end">
-                      <button className="rounded-md bg-[#2878c7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f65a8]" type="button" onClick={() => navigate(`/job-details/${job._id} `)}>Apply</button>
+                      <button className="rounded-md bg-[#2878c7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f65a8]" type="button" onClick={() => navigate(`/job-details/${job._id}`)}>Apply</button>
                     </div>
                   </div>
                 </div>

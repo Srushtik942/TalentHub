@@ -76,6 +76,7 @@ function JobDetails() {
   const [similarJobs, setSimilarJobs] = useState([]);
   const [applyJobs, setApplyJobs] = useState([]);
   const [applyLoading,setApplyLoading] = useState("");
+  const [saveJobs,setSaveJobs] = useState([]);
 
 
   useEffect(()=>{
@@ -219,6 +220,81 @@ const skills = (job.requiredSkills ?? '')
     }finally {
     setApplyLoading(false);
   }
+  }
+
+  const onClickWithdraw = async()=>{
+    try{
+      setApplyLoading(true);
+
+      const token = localStorage.getItem("token");
+
+      const application = applyJobs.find((app)=> String(app.job?._id || app.job || app.jobId) === String(jobId));
+
+    if(!application?._id){
+      throw new Error("Application not found!");
+    }
+
+    const response = await fetch(
+      `${import.meta.env.VITE_BACKEND_API}/api/applicant/applications/${application._id}/withdraw`,
+      {
+        method: "PATCH",
+        headers:{
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+
+    const data = await response.json().catch(()=> ({}));
+
+    if(!response.ok){
+      throw new Error(data?.message || "Failed to withdraw");
+    }
+
+    setApplyJobs((prev)=> prev.filter((app)=> app._id !== application._id));
+    setApplied(false);
+    }catch(error){
+      console.error(error);
+
+    }finally{
+      setApplyLoading(false);
+    }
+  }
+
+  const onClickApplyOrWithdraw = ()=>{
+    if(applyLoading) return
+    if(applied){
+      onClickWithdraw()
+    }else{
+      onClickApplyJobs()
+    }
+  }
+
+  const onClickSavedJob = async()=>{
+    try{
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`
+        ${import.meta.env.VITE_BACKEND_API}/api/applicant/jobs/${jobId}/bookmark
+        `,
+        {
+           method:"PATCH",
+          headers:{
+           Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      const data = await response.json();
+      console.log(data);
+
+       if (!response.ok) {
+      throw new Error(data?.message || "Failed to save job")
+    }
+
+      setSaveJobs((prev)=>!prev)
+
+    }catch(error){
+      console.error(error);
+    }
   }
 
 
@@ -373,7 +449,8 @@ const skills = (job.requiredSkills ?? '')
               <h2 className="text-[1.1rem] font-semibold text-slate-900">Apply for this job</h2>
               <button
                 type="button"
-                onClick={onClickApplyJobs}
+                onClick={onClickApplyOrWithdraw}
+                disabled={applyLoading}
                 className={`mt-5 w-full rounded-xl px-4 py-3 text-base font-semibold transition ${
                   applied ? 'bg-[#0f172a] text-white hover:bg-[#111827]' : 'bg-[#1d4ed8] text-white hover:bg-[#1e40af]'
                 }`}
@@ -382,7 +459,8 @@ const skills = (job.requiredSkills ?? '')
               </button>
               <button
                 type="button"
-                onClick={() => setSaved((current) => !current)}
+                // onClick={() => setSaved((current) => !current)}
+                onClick={onClickSavedJob}
                 className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-base font-medium transition ${
                   saved ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
