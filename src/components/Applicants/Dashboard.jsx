@@ -1,11 +1,12 @@
 import { useState,useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useSavedJobs } from '../../Context/SavedJobsContext'
 
-function Icon({ name, className = 'h-4 w-4' }) {
+function Icon({ name, className = 'h-4 w-4', filled = false }) {
   const common = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
   if (name === 'search') return <svg {...common}><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
   if (name === 'bell') return <svg {...common}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></svg>
-  if (name === 'bookmark') return <svg {...common}><path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-4-6 4z" /></svg>
+  if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' : 'none'}><path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-4-6 4z" /></svg>
   if (name === 'pin') return <svg {...common}><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.4" /></svg>
   if (name === 'chevron') return <svg {...common}><path d="m7 10 5 5 5-5" /></svg>
   if (name === 'filter') return <svg {...common}><path d="M4 6h16M7 12h10m-7 6h4" /></svg>
@@ -43,6 +44,7 @@ function getInitials(name = ''){
   return (first + last).toUpperCase()
 }
 
+
 const Dashboard = () => {
   const navigate = useNavigate()
 
@@ -58,6 +60,8 @@ const Dashboard = () => {
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [jobs,setJobs] = useState([]);
+  const { isSaved, toggleSaved, setSavedIds } = useSavedJobs()
+
 
   const locations = [...new Set(jobs.map((job) => job.location).filter(Boolean))]
   const experienceOptions = [...new Set(jobs.map((job) => job.experience).filter(Boolean).map(String))]
@@ -89,11 +93,12 @@ useEffect(() => {
     const data = await response.json();
     console.log("data",data);
     // setJobs(Array.isArray(data?.jobs) ? data.jobs : []);
-      const recruiterJobs = data.jobs.filter((job) => job.isExternal === false);
+    const recruiterJobs = (data?.jobs ?? []).filter((job) => job.isExternal === false);
     console.log("data", recruiterJobs );
     // console.log("jobs",recruiterJobs?.jobs);
 
     setJobs(recruiterJobs);
+    setSavedIds(recruiterJobs.filter((job) => job.isSaved).map((job) => job._id))
   };
 
   fetchJobs();
@@ -151,6 +156,8 @@ if (sortBy === 'Salary: High to Low') {
   )
 }
 
+if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' : 'none'}><path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-4-6 4z" /></svg>
+
 
   const pageSize = 4
   const pageCount = Math.max(1, Math.ceil(filteredJobs.length / pageSize))
@@ -175,6 +182,33 @@ if (sortBy === 'Salary: High to Low') {
     return null
   }
 })
+
+  const onClickSavedJob = async(jobId)=>{
+    try{
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`
+        ${import.meta.env.VITE_BACKEND_API}/api/applicant/jobs/${jobId}/bookmark`,
+        {
+           method:"PATCH",
+          headers:{
+           Authorization: `Bearer ${token}`
+          }
+        }
+      )
+      const data = await response.json().catch(()=>({}));
+      console.log(data);
+
+       if (!response.ok) {
+      throw new Error(data?.message || "Failed to save job")
+    }
+
+      // setSaved((current)=> toggleValue(current, jobId))
+        setSaved(recruiterJobs.filter((job) => job.isSaved).map((job) => job._id))
+    }catch(error){
+      console.error(error);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#f5f7fb] font-sans text-slate-900">
@@ -286,11 +320,22 @@ if (sortBy === 'Salary: High to Low') {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h2 className="truncate text-2xl font-bold text-slate-900">{job.title}</h2>
-                        <p className="mt-1 text-sm text-slate-600">{job.companyName}</p>
+                        <p className="mt-1 text-sm text-slate-600 font-semibold">{job.companyName}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {index === 0 && currentPage === 1 && <span className="rounded-md bg-blue-50 px-2 py-1 text-sm font-semibold text-blue-700">New</span>}
-                        <button className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-slate-100 ${saved.includes(job.id) ? 'text-blue-600' : 'text-slate-500'}`} type="button" onClick={() => setSaved((current) => toggleValue(current, job.id))} aria-label={saved.includes(job.id) ? `Remove ${job.title} from saved jobs` : `Save ${job.title}`} aria-pressed={saved.includes(job.id)}><Icon name="bookmark" className="h-[18px] w-[18px]" /></button>
+                        <button
+                        className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-slate-100 ${saved.includes(job.id) ? 'text-blue-600' : 'text-slate-500'}`}
+                        type="button"
+                        // onClick={() => onClickSavedJob(job._id)}
+                        onClick={() => toggleSaved(job._id)}
+                        // aria-label={saved.includes(job.id) ? `Remove ${job.title} from saved jobs` : `Save ${job.title}`}
+                        aria-label={isSaved(job._id) ? `Remove ${job.title} from saved jobs` : `Save ${job.title}`}
+                        // aria-pressed={saved.includes(job.id)}
+                        aria-pressed={isSaved(job._id)}
+                        >
+                        <Icon name="bookmark" className="h-[18px] w-[18px]" />
+                        </button>
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600 sm:gap-x-6">

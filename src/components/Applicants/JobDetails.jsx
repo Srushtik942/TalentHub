@@ -76,7 +76,7 @@ function JobDetails() {
   const [similarJobs, setSimilarJobs] = useState([]);
   const [applyJobs, setApplyJobs] = useState([]);
   const [applyLoading,setApplyLoading] = useState("");
-  const [saveJobs,setSaveJobs] = useState([]);
+  const [activeTab, setActiveTab] = useState('details');
 
 
   useEffect(()=>{
@@ -100,6 +100,16 @@ function JobDetails() {
             const data = await response.json();
             console.log("data",data?.job);
             setJob(data?.job)
+
+            const application = data?.application ?? data?.job?.application
+            if(application && application.status !== 'withdrawn'){
+              setApplied(true)
+              setApplyJobs([application])
+            }else{
+              setApplied(false)
+              setApplyJobs([])
+            }
+
         }catch(err){
         setError(err.message);
         }finally{
@@ -115,6 +125,11 @@ const skills = (job.requiredSkills ?? '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean)
+
+  const onClickTab = (tab)=>{
+    setActiveTab(tab);
+    if(tab === 'similar') onClickViewJobs();
+  }
 
   const date = new Date(job?.createdAt);
 
@@ -274,8 +289,7 @@ const skills = (job.requiredSkills ?? '')
       const token = localStorage.getItem("token");
 
       const response = await fetch(`
-        ${import.meta.env.VITE_BACKEND_API}/api/applicant/jobs/${jobId}/bookmark
-        `,
+        ${import.meta.env.VITE_BACKEND_API}/api/applicant/jobs/${jobId}/bookmark`,
         {
            method:"PATCH",
           headers:{
@@ -290,7 +304,7 @@ const skills = (job.requiredSkills ?? '')
       throw new Error(data?.message || "Failed to save job")
     }
 
-      setSaveJobs((prev)=>!prev)
+      setSaved((prev)=>!prev)
 
     }catch(error){
       console.error(error);
@@ -347,17 +361,35 @@ const skills = (job.requiredSkills ?? '')
   <span className="text-slate-600">Posted {formatDate}</span>
 </div>
 
-            <div className="mt-8 flex gap-8 border-b border-slate-200 pb-2 text-base font-medium text-slate-500">
-              <button type="button" className="border-b-2 border-blue-600 pb-2 text-blue-700">Job Details</button>
+      <div className="mt-8 flex gap-8 border-b border-slate-200 pb-2 text-base font-medium text-slate-500">
+              {/* <button type="button" className="border-b-2 border-blue-600 pb-2 text-blue-700">Job Details</button>
               <button type="button" className="pb-2">About Company</button>
-              <button type="button" className="pb-2">Reviews</button>
-              <button type="button" className="pb-2">Similar Jobs</button>
+              <button onClick={onClickViewJobs} type="button" className="pb-2">Similar Jobs</button> */}
+           {
+           [
+            { id: 'details', label: 'Job Details' },
+            { id: 'company', label: 'About Company' },
+            // { id: 'similar', label: 'Similar Jobs' },
+           ].map((tab)=>(
+             <button
+             key={tab.id}
+             type="button"
+             onClick={()=> onClickTab(tab.id)}
+             className={`pb-2 ${activeTab === tab.id ? 'border-b-2 border-blue-600 text-blue-700' : 'hover:text-slate-800'}`}
+             >
+              {tab.label}
+             </button>
+           ))}
+
             </div>
 
+           {activeTab ==='details' &&(
+            <>
             <div className="mt-8">
               <h2 className="text-[1.1rem] font-semibold text-slate-900">Job Description</h2>
               <p className="mt-4 text-base leading-8 text-slate-700">{job?.jobDescription}</p>
             </div>
+
             <div className="mt-8">
               <h3 className="text-[1.1rem] font-semibold text-slate-900">Skills</h3>
               <div className="mt-4 flex flex-wrap gap-3">
@@ -442,6 +474,8 @@ const skills = (job.requiredSkills ?? '')
   </div>
 )}
             </div>
+            </>
+           )}
           </section>
 
           <aside className="space-y-6">
@@ -465,7 +499,7 @@ const skills = (job.requiredSkills ?? '')
                   saved ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <Icon  className="h-4 w-4" />
+                <Icon name="bookmark" className="h-4 w-4" />
                 {saved ? 'Saved Job' : 'Save Job'}
               </button>
             </div>
@@ -478,14 +512,19 @@ const skills = (job.requiredSkills ?? '')
                 </div>
                 <div>
                   <p className="text-lg font-semibold text-slate-900">{job?.postedBy?.fullName}</p>
-                  <p className="text-sm text-slate-600">{job?.postedBy?.email}</p>
+                  <p className="text-sm text-slate-600" >
+                    {
+                    job?.postedBy?.email && (
+                      <a href={`mailto: ${job.postedBy.email}`} className='text-sm text-slate-600 hover:text-blue-700 hover:underline'>{job.postedBy.email}</a>
+                    )
+                    }</p>
                 </div>
               </div>
 
               <p className="mt-4 text-sm text-slate-700 font-semibold">{job?.postedBy?.companyName}</p>
-              <button type="button" className="mt-4 text-sm font-semibold text-blue-700 hover:text-blue-800">
+              {/* <button type="button" className="mt-4 text-sm font-semibold text-blue-700 hover:text-blue-800">
                 View Profile
-              </button>
+              </button> */}
             </div>
 
             <div className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-sm">

@@ -6,6 +6,7 @@ import Login from './components/Login'
 import Dashboard from './components/Applicants/Dashboard'
 import JobDetails from './components/Applicants/JobDetails'
 import LandingPage from './components/LandingPage'
+import ApplicantProfile from './components/Applicants/ApplicantProfile'
 import './App.css'
 
 function Register() {
@@ -35,6 +36,7 @@ function App() {
       <Route path="/login" element={<Login onRegister={() => window.location.href = '/register'} />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/job-details/:jobId" element={<JobDetails />} />
+      <Route path="/applicant-profile" element={<ApplicantProfile />} />
     </Routes>
   )
 }
