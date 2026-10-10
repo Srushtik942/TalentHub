@@ -6,7 +6,7 @@ function Icon({ name, className = 'h-4 w-4', filled = false }) {
   const common = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
   if (name === 'search') return <svg {...common}><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.5 4.5" /></svg>
   if (name === 'bell') return <svg {...common}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></svg>
-  if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' : 'none'}><path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-4-6 4z" /></svg>
+  // if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' : 'none'}><path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-4-6 4z" /></svg>
   if (name === 'pin') return <svg {...common}><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.4" /></svg>
   if (name === 'chevron') return <svg {...common}><path d="m7 10 5 5 5-5" /></svg>
   if (name === 'filter') return <svg {...common}><path d="M4 6h16M7 12h10m-7 6h4" /></svg>
@@ -56,7 +56,7 @@ const Dashboard = () => {
   const [salaryMax, setSalaryMax] = useState(50)
   const [remoteOnly, setRemoteOnly] = useState(false)
   const [sortBy, setSortBy] = useState('Most Recent')
-  const [saved, setSaved] = useState([])
+  // const [saved, setSaved] = useState([])
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [jobs,setJobs] = useState([]);
@@ -156,7 +156,7 @@ if (sortBy === 'Salary: High to Low') {
   )
 }
 
-if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' : 'none'}><path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-4-6 4z" /></svg>
+// if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' : 'none'}><path d="M6 4.8A1.8 1.8 0 0 1 7.8 3h8.4A1.8 1.8 0 0 1 18 4.8V21l-6-4-6 4z" /></svg>
 
 
   const pageSize = 4
@@ -233,6 +233,7 @@ if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' :
   className="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-slate-100 "
   type="button"
   aria-label="Profile"
+  onClick={()=>navigate("/applicant-profile")}
 
 >
   <span className="grid h-9 w-9 place-items-center rounded-full bg-[#e9eef8] text-sm font-bold text-slate-700 ring-2 ring-white ">
@@ -324,8 +325,11 @@ if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' :
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {index === 0 && currentPage === 1 && <span className="rounded-md bg-blue-50 px-2 py-1 text-sm font-semibold text-blue-700">New</span>}
-                        <button
-                        className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-slate-100 ${saved.includes(job.id) ? 'text-blue-600' : 'text-slate-500'}`}
+                        {/* <button
+                        className={
+                          `grid h-8 w-8 place-items-center rounded-md transition hover:bg-slate-100 ${saved.includes(job.id) ? 'text-blue-600' : 'text-slate-500'}
+                          `
+                        }
                         type="button"
                         // onClick={() => onClickSavedJob(job._id)}
                         onClick={() => toggleSaved(job._id)}
@@ -335,7 +339,16 @@ if (name === 'bookmark') return <svg {...common} fill={filled ? 'currentColor' :
                         aria-pressed={isSaved(job._id)}
                         >
                         <Icon name="bookmark" className="h-[18px] w-[18px]" />
-                        </button>
+                        </button> */}
+                        <button
+  className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-slate-100 ${isSaved(job._id) ? 'text-blue-600' : 'text-slate-500'}`}
+  type="button"
+  onClick={() => toggleSaved(job._id)}
+  aria-label={isSaved(job._id) ? `Remove ${job.title} from saved jobs` : `Save ${job.title}`}
+  aria-pressed={isSaved(job._id)}
+>
+  <Icon name="bookmark" filled={isSaved(job._id)} className="h-[18px] w-[18px]" />
+</button>
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600 sm:gap-x-6">

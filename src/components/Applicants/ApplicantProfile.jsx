@@ -1,6 +1,7 @@
 
 import { useEffect, useRef, useState } from 'react'
-import { MapPin, Phone } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, MapPin, Phone } from 'lucide-react'
 
 const normalizeProfile  = (u)=>({
   name: u.fullName || '',
@@ -16,14 +17,22 @@ const normalizeProfile  = (u)=>({
 
 })
 
+const isResumeUrl = (resume) =>
+  typeof resume === 'string' && /^(https?:\/\/|\/)/i.test(resume)
+
 function ApplicantProfile() {
+  const navigate = useNavigate()
   const fileInputRef = useRef(null)
   const [profile, setProfile] = useState(null)
   const [draft, setDraft] = useState(null)
+  const [resumePreviewUrl, setResumePreviewUrl] = useState('')
   const [isEditing, setIsEditing] = useState(false);
   const[error,setError] = useState(null);
   const [loading,setLoading] = useState(true);
 
+  useEffect(() => () => {
+    if (resumePreviewUrl) URL.revokeObjectURL(resumePreviewUrl)
+  }, [resumePreviewUrl])
 
   useEffect(()=>{
   const fetchProfile = async()=>{
@@ -66,10 +75,15 @@ function ApplicantProfile() {
 
     if (!file) return
 
+    setResumePreviewUrl(URL.createObjectURL(file))
     setDraft((current) => ({
       ...current,
       resume: file.name,
     }))
+    if (!isEditing) {
+      setProfile((current) => current ? { ...current, resume: file.name } : current)
+    }
+    event.target.value = ''
   }
 
   const handleInputChange = (field, value) => {
@@ -98,6 +112,7 @@ function ApplicantProfile() {
 
   const cancelEdit = () => {
     setDraft(profile)
+    setResumePreviewUrl('')
     setIsEditing(false)
   }
 
@@ -121,16 +136,26 @@ function ApplicantProfile() {
     <main className="min-h-screen bg-[#edf4ff] p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
         <div className="overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-[0_18px_45px_rgba(37,99,235,0.12)]">
-          <header className="flex flex-col gap-4 border-b border-blue-100 bg-gradient-to-r from-[#eff6ff] to-[#dfeeff] px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">Applicant profile</p>
-              <h1 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">Professional details</h1>
+          <header className="flex flex-col gap-5 border-b border-blue-100 bg-gradient-to-r from-[#eff6ff] to-[#dfeeff] px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+            <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-white text-blue-700 transition hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:mt-0"
+                aria-label="Back to dashboard"
+              >
+                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">Applicant profile</p>
+                <h1 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">Professional details</h1>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={() => setIsEditing((open) => !open)}
-              className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
+              className="inline-flex w-full items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:w-auto"
             >
               {isEditing ? 'Close editor' : 'Edit details'}
             </button>
@@ -154,19 +179,19 @@ function ApplicantProfile() {
               </div>
 
               <div className="mt-6 space-y-4 text-sm text-slate-700">
-              <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
+              <div className="flex min-w-0 items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
                  <MapPin className="h-4 w-4 text-blue-600" />
-                     <span>{profile.location}</span>
+                     <span className="min-w-0 break-words">{profile.location}</span>
               </div>
 
-                <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
+                <div className="flex min-w-0 items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
                       <span className="text-blue-600">✉️</span>
-                   <span>{profile.email}</span>
+                   <span className="min-w-0 break-all">{profile.email}</span>
                 </div>
 
-               <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
+               <div className="flex min-w-0 items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
                   <Phone className="h-4 w-4 text-blue-600" />
-                  <span>{profile.phone || 'Phone not provided'}</span>
+                  <span className="min-w-0 break-all">{profile.phone || 'Phone not provided'}</span>
                 </div>
               </div>
 
@@ -261,16 +286,26 @@ function ApplicantProfile() {
 
                   <div className="rounded-2xl border border-dashed border-blue-200 bg-[#f6faff] p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-800">Resume</p>
-                        <p className="mt-1 text-sm text-slate-600">{draft.resume}</p>
+                        <p className="mt-1 break-all text-sm text-slate-600">{draft.resume || 'No resume uploaded yet'}</p>
+                        {(resumePreviewUrl || isResumeUrl(draft.resume)) && (
+                          <a
+                            href={resumePreviewUrl || draft.resume}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex text-sm font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+                          >
+                            Preview resume
+                          </a>
+                        )}
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex w-full gap-2 sm:w-auto">
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                          className="w-full rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
                         >
                           Upload resume
                         </button>
@@ -285,18 +320,18 @@ function ApplicantProfile() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-3 pt-2">
+                  <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                     <button
                       type="button"
                       onClick={cancelEdit}
-                      className="rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                      className="w-full rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
                     >
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={saveProfile}
-                      className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                      className="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:w-auto"
                     >
                       Save changes
                     </button>
@@ -349,18 +384,36 @@ function ApplicantProfile() {
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">Resume</p>
                     <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-base font-semibold text-slate-900">
+                      <div className="min-w-0">
+                        <p className="break-all text-base font-semibold text-slate-900">
                             {profile.resume || 'No resume uploaded'}
                           </p>
-                        {profile.resume && (
-                           <button
-                                type="button"
-                                className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                           >
-                               View resume
-                            </button>
-                           )}
+                        {(resumePreviewUrl || isResumeUrl(profile.resume)) && (
+                          <a
+                            href={resumePreviewUrl || profile.resume}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex text-sm font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+                          >
+                            View resume
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex w-full gap-2 sm:w-auto">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:w-auto"
+                        >
+                          Upload resume
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleResumeUpload}
+                          className="hidden"
+                        />
                       </div>
                     </div>
                   </div>

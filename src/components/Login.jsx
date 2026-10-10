@@ -44,7 +44,8 @@ const Login = ({ onRegister }) => {
         navigate("/dashboard")
 
      }catch(err){
-        setError("Something went wrong. Please try again");
+        setError("Something went wrong. Please try again",err);
+
      }finally{
         setLoading(false);
      }
