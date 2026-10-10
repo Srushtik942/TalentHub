@@ -1,24 +1,65 @@
-import { useRef, useState } from 'react'
 
-const defaultProfile = {
-  name: 'Sophia Carter',
-  title: 'Senior Product Designer',
-  location: 'Bengaluru, India',
-  email: 'sophia.carter@email.com',
-  phone: '+91 98765 43210',
-  experience: '7+ Years',
-  availability: 'Open to work',
-  summary:
-    'Product designer with a strong track record in user-centered design, design systems, and digital product strategy for SaaS and fintech teams.',
-  skills: ['UX Research', 'Figma', 'Design Systems', 'User Flows', 'Prototyping', 'Product Strategy'],
-  resume: 'Sophia_Carter_Resume.pdf',
-}
+import { useEffect, useRef, useState } from 'react'
+import { MapPin, Phone } from 'lucide-react'
+
+const normalizeProfile  = (u)=>({
+  name: u.fullName || '',
+  title: u.title || u.role,
+  location : u.location || 'Not Specified',
+  email: u.email || '',
+  phone: u.phone || '',
+  experience: u.experience ?? '0',
+  availability: u.availability || 'Open to work',
+  summary: u.summary || '',
+  skills: Array.isArray(u.skills) ? u.skills : [],
+  resume: u.resume || '',
+
+})
 
 function ApplicantProfile() {
   const fileInputRef = useRef(null)
-  const [profile, setProfile] = useState(defaultProfile)
-  const [draft, setDraft] = useState(defaultProfile)
-  const [isEditing, setIsEditing] = useState(false)
+  const [profile, setProfile] = useState(null)
+  const [draft, setDraft] = useState(null)
+  const [isEditing, setIsEditing] = useState(false);
+  const[error,setError] = useState(null);
+  const [loading,setLoading] = useState(true);
+
+
+  useEffect(()=>{
+  const fetchProfile = async()=>{
+    try{
+            setLoading(true);
+            setError(null);
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(
+              `${import.meta.env.VITE_BACKEND_API}/api/applicant/profile`,
+              {
+                headers:{
+                  Authorization: `Bearer ${token}`
+                }
+              }
+            )
+            console.log("response",response);
+
+            if(!response.ok) throw new Error("Profile not found");
+
+            const data = await response.json();
+            console.log(data);
+
+            const normalized = normalizeProfile(data.userData);
+            setProfile(normalized);
+            setDraft(normalized)
+
+    }catch(err){
+     setError(err.message);
+    }finally{
+      setLoading(false);
+    }
+  }
+  fetchProfile();
+},[])
+
 
   const handleResumeUpload = (event) => {
     const file = event.target.files?.[0]
@@ -60,6 +101,22 @@ function ApplicantProfile() {
     setIsEditing(false)
   }
 
+    if (loading) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#edf4ff]">
+        <p className="text-slate-600">Loading profile…</p>
+      </main>
+    )
+  }
+
+  if (error || !profile) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#edf4ff]">
+        <p className="text-red-600">{error || 'Something went wrong'}</p>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-[#edf4ff] p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
@@ -83,7 +140,7 @@ function ApplicantProfile() {
             <aside className="w-full rounded-2xl border border-blue-100 bg-[#f8fbff] p-5 lg:max-w-[320px]">
               <div className="flex items-start gap-4">
                 <div className="grid h-16 w-16 place-items-center rounded-2xl bg-blue-600 text-xl font-bold text-white shadow-lg shadow-blue-200">
-                  {profile.name
+                  {(profile.name || '?')
                     .split(' ')
                     .map((part) => part[0])
                     .slice(0, 2)
@@ -91,29 +148,31 @@ function ApplicantProfile() {
                 </div>
 
                 <div className="min-w-0">
-                  <h2 className="text-xl font-bold text-slate-900">{profile.name}</h2>
+                  <h2 className="text-xl font-bold text-slate-900">{profile.name }</h2>
                   <p className="mt-1 text-sm font-medium text-blue-700">{profile.title}</p>
                 </div>
               </div>
 
               <div className="mt-6 space-y-4 text-sm text-slate-700">
+              <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
+                 <MapPin className="h-4 w-4 text-blue-600" />
+                     <span>{profile.location}</span>
+              </div>
+
                 <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
-                  <span className="text-blue-600">📍</span>
-                  <span>{profile.location}</span>
+                      <span className="text-blue-600">✉️</span>
+                   <span>{profile.email}</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
-                  <span className="text-blue-600">✉️</span>
-                  <span>{profile.email}</span>
-                </div>
-                <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
-                  <span className="text-blue-600">📞</span>
-                  <span>{profile.phone}</span>
+
+               <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-2.5 shadow-sm ring-1 ring-blue-100">
+                  <Phone className="h-4 w-4 text-blue-600" />
+                  <span>{profile.phone || 'Phone not provided'}</span>
                 </div>
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-3">
                 <div className="rounded-xl bg-blue-50 p-3 text-center ring-1 ring-blue-100">
-                  <div className="text-lg font-bold text-blue-700">{profile.experience}</div>
+                  <div className="text-lg font-bold text-blue-700">{profile.experience} Yrs</div>
                   <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-blue-600">Exp</div>
                 </div>
                 <div className="rounded-xl bg-blue-50 p-3 text-center ring-1 ring-blue-100">
@@ -154,6 +213,8 @@ function ApplicantProfile() {
                     <label className="block text-sm font-medium text-slate-700">
                       Experience
                       <input
+                        min="0"
+                        type='number'
                         value={draft.experience}
                         onChange={(event) => handleInputChange('experience', event.target.value)}
                         className="mt-1.5 w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -245,19 +306,29 @@ function ApplicantProfile() {
                 <div className="space-y-6">
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">About</p>
-                    <p className="mt-3 text-base leading-7 text-slate-700">{profile.summary}</p>
+                    <p className="mt-3 text-base leading-7 text-slate-700">{profile.summary || 'No summary added yet'}</p>
                   </div>
 
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">Experience</p>
                     <div className="mt-3 rounded-2xl border border-blue-100 bg-[#f8fbff] p-4">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      {/* <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <h3 className="text-lg font-bold text-slate-900">Senior Product Designer</h3>
                           <p className="text-sm text-slate-600">Northstar Labs • 2021 - Present</p>
                         </div>
                         <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">{profile.experience}</span>
-                      </div>
+                      </div> */}
+                      <div className="flex items-center justify-between">
+  <p className="text-base font-semibold text-slate-900">
+    {Number(profile.experience) > 0
+      ? `${profile.experience} years of experience`
+      : 'Fresher'}
+  </p>
+  <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+    {profile.experience} Yrs
+  </span>
+</div>
                     </div>
                   </div>
 
@@ -279,16 +350,18 @@ function ApplicantProfile() {
                     <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">Resume</p>
                     <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-base font-semibold text-slate-900">{profile.resume}</p>
-                        <p className="text-sm text-slate-600">Last updated: 2 weeks ago</p>
+                        <p className="text-base font-semibold text-slate-900">
+                            {profile.resume || 'No resume uploaded'}
+                          </p>
+                        {profile.resume && (
+                           <button
+                                type="button"
+                                className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                           >
+                               View resume
+                            </button>
+                           )}
                       </div>
-
-                      <button
-                        type="button"
-                        className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                      >
-                        View resume
-                      </button>
                     </div>
                   </div>
                 </div>
