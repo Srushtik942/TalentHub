@@ -2,7 +2,8 @@ import { useState,useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSavedJobs } from '../../Context/SavedJobsContext'
 import {useDispatch,useSelector} from 'react-redux';
-import { setUser } from '../../redux/userSlice';
+import { setUser, clearUser } from '../../redux/userSlice';
+
 
 
 
@@ -42,10 +43,32 @@ function formatDate(createdAt){
 
 function getInitials(name = ''){
   const parts = name.trim().split(/\s+/).filter(Boolean)
-  if(parts.length === 0) return '?'
   const first = parts[0][0]
   const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
   return (first + last).toUpperCase()
+}
+
+function JobCardSkeleton() {
+  return (
+    <div className="animate-pulse rounded-xl border border-slate-200 bg-white p-4 sm:px-5 sm:py-4">
+      <div className="flex items-start gap-3.5">
+        <div className="h-10 w-10 shrink-0 rounded-lg bg-slate-200" />
+        <div className="min-w-0 flex-1">
+          <div className="h-6 w-2/5 rounded bg-slate-200" />
+          <div className="mt-2 h-4 w-1/4 rounded bg-slate-200" />
+          <div className="mt-5 flex flex-wrap gap-4">
+            <div className="h-4 w-24 rounded bg-slate-200" />
+            <div className="h-4 w-20 rounded bg-slate-200" />
+            <div className="h-4 w-28 rounded bg-slate-200" />
+            <div className="h-4 w-24 rounded bg-slate-200" />
+          </div>
+          <div className="mt-4 flex justify-end">
+            <div className="h-9 w-20 rounded-md bg-slate-200" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 
@@ -64,9 +87,11 @@ const Dashboard = () => {
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [jobs,setJobs] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(true)
   const { isSaved, toggleSaved, setSavedIds } = useSavedJobs();
   const userData = useSelector((state) => state.user.userData);
   console.log("userData from redux:", userData);
+
 
 
   const locations = [...new Set(jobs.map((job) => job.location).filter(Boolean))]
@@ -83,6 +108,7 @@ console.log("employmentOptions",employmentOptions)
 
 useEffect(() => {
   const fetchJobs = async () => {
+    try{
     const token = localStorage.getItem("token");
 
     const response = await fetch(
@@ -105,7 +131,13 @@ useEffect(() => {
 
     setJobs(recruiterJobs);
     setSavedIds(recruiterJobs.filter((job) => job.isSaved).map((job) => job._id))
-  };
+
+}catch(error){
+  console.error(error)
+}finally{
+  setLoadingJobs(false);
+}
+}
 
   fetchJobs();
 }, []);
@@ -231,6 +263,14 @@ useEffect(()=>{
   fetchProfile();
  },[]);
 
+ const handleLogout = ()=>{
+  localStorage.removeItem('token');
+  localStorage.removeItem('user')
+  dispatch(clearUser())
+  setSavedIds([])
+  navigate('/',{replace:true})
+ }
+
   return (
     <main className="min-h-screen bg-[#f5f7fb] font-sans text-slate-900">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
@@ -251,18 +291,25 @@ useEffect(()=>{
               <span className="absolute right-2 top-1.5 h-1.5 w-1.5 rounded-full bg-blue-600" />
             </button>
            <button
-  className="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-slate-100 "
-  type="button"
-  aria-label="Profile"
-  onClick={()=>navigate("/applicant-profile")}
+                 className="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-slate-100 "
+                    type="button"
+                aria-label="Profile"
+                 onClick={()=>navigate("/applicant-profile")}
 
->
+              >
   <span className="grid h-9 w-9 place-items-center rounded-full bg-[#e9eef8] text-sm font-bold text-slate-700 ring-2 ring-white ">
     {getInitials(userData?.fullName)}
   </span>
   <span className="hidden max-w-[140px] truncate text-sm font-semibold text-slate-700 sm:inline">
     {userData?.fullName}
   </span>
+</button>
+<button
+className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-red-600"
+  type="button"
+  onClick={handleLogout}
+>
+Logout
 </button>
           </div>
         </div>
@@ -330,67 +377,64 @@ useEffect(()=>{
             </label>
           </div>
 
-          <div className="space-y-3">
-            {visibleJobs.map((job, index) => (
-              <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:border-blue-200 hover:shadow-sm sm:px-5 sm:py-4" key={job._id}>
-                <div className="flex items-start gap-3.5">
-                  {/* <div className={`grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg text-2xl font-bold text-white ${job.color}`}>{job.mark}</div> */}
-                  <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-blue-800 text-lg font-bold text-white">
-                     {job.companyName?.trim().charAt(0).toUpperCase() || '?'}
-                    </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h2 className="truncate text-2xl font-bold text-slate-900">{job.title}</h2>
-                        <p className="mt-1 text-sm text-slate-600 font-semibold">{job.companyName}</p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        {index === 0 && currentPage === 1 && <span className="rounded-md bg-blue-50 px-2 py-1 text-sm font-semibold text-blue-700">New</span>}
-                        {/* <button
-                        className={
-                          `grid h-8 w-8 place-items-center rounded-md transition hover:bg-slate-100 ${saved.includes(job.id) ? 'text-blue-600' : 'text-slate-500'}
-                          `
-                        }
-                        type="button"
-                        // onClick={() => onClickSavedJob(job._id)}
-                        onClick={() => toggleSaved(job._id)}
-                        // aria-label={saved.includes(job.id) ? `Remove ${job.title} from saved jobs` : `Save ${job.title}`}
-                        aria-label={isSaved(job._id) ? `Remove ${job.title} from saved jobs` : `Save ${job.title}`}
-                        // aria-pressed={saved.includes(job.id)}
-                        aria-pressed={isSaved(job._id)}
-                        >
-                        <Icon name="bookmark" className="h-[18px] w-[18px]" />
-                        </button> */}
-                        <button
-  className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-slate-100 ${isSaved(job._id) ? 'text-blue-600' : 'text-slate-500'}`}
-  type="button"
-  onClick={() => toggleSaved(job._id)}
-  aria-label={isSaved(job._id) ? `Remove ${job.title} from saved jobs` : `Save ${job.title}`}
-  aria-pressed={isSaved(job._id)}
->
-  <Icon name="bookmark" filled={isSaved(job._id)} className="h-[18px] w-[18px]" />
-</button>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600 sm:gap-x-6">
-                   <span className="flex items-center gap-1.5">
-                      <span className="text-sm leading-none">₹</span>
-                               {job.salaryMin / 100000} - {job.salaryMax / 100000} LPA
-                      </span>
-                      <span className="flex items-center gap-1.5"><span aria-hidden="true">◷</span>{job.experience} years</span>
-                      <span className="flex items-center gap-1.5"><Icon name="pin" className="h-3.5 w-3.5" />{job.location}</span>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-sm text-slate-600">{job.employmentType}</span>
-                      <span className="flex items-center gap-1.5">  Posted on {formatDate(job.createdAt)}</span>
-                    </div>
-                    <div className="mt-4 flex justify-end">
-                      <button className="rounded-md bg-[#2878c7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f65a8]" type="button" onClick={() => navigate(`/job-details/${job._id}`)}>Apply</button>
-                    </div>
-                  </div>
+         <div className="space-y-3">
+  {loadingJobs ? (
+    Array.from({ length: pageSize }, (_, i) => <JobCardSkeleton key={i} />)
+  ) : (
+    <>
+      {visibleJobs.map((job, index) => (
+        <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition hover:border-blue-200 hover:shadow-sm sm:px-5 sm:py-4" key={job._id}>
+          <div className="flex items-start gap-3.5">
+            <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-blue-800 text-lg font-bold text-white">
+              {job.companyName?.trim().charAt(0).toUpperCase() || '?'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="truncate text-2xl font-bold text-slate-900">{job.title}</h2>
+                  <p className="mt-1 text-sm text-slate-600 font-semibold">{job.companyName}</p>
                 </div>
-              </article>
-            ))}
-            {visibleJobs.length === 0 && <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center"><h2 className="text-sm font-semibold text-slate-800">No jobs match these filters</h2><p className="mt-1 text-sm text-slate-500">Try changing your search or clearing the filters.</p><button className="mt-4 text-sm font-semibold text-blue-600 hover:underline" type="button" onClick={clearFilters}>Clear all filters</button></div>}
+                <div className="flex shrink-0 items-center gap-2">
+                  {index === 0 && currentPage === 1 && <span className="rounded-md bg-blue-50 px-2 py-1 text-sm font-semibold text-blue-700">New</span>}
+                  <button
+                    className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-slate-100 ${isSaved(job._id) ? 'text-blue-600' : 'text-slate-500'}`}
+                    type="button"
+                    onClick={() => toggleSaved(job._id)}
+                    aria-label={isSaved(job._id) ? `Remove ${job.title} from saved jobs` : `Save ${job.title}`}
+                    aria-pressed={isSaved(job._id)}
+                  >
+                    <Icon name="bookmark" filled={isSaved(job._id)} className="h-[18px] w-[18px]" />
+                  </button>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600 sm:gap-x-6">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-sm leading-none">₹</span>
+                  {job.salaryMin / 100000} - {job.salaryMax / 100000} LPA
+                </span>
+                <span className="flex items-center gap-1.5"><span aria-hidden="true">◷</span>{job.experience} years</span>
+                <span className="flex items-center gap-1.5"><Icon name="pin" className="h-3.5 w-3.5" />{job.location}</span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-sm text-slate-600">{job.employmentType}</span>
+                <span className="flex items-center gap-1.5">Posted on {formatDate(job.createdAt)}</span>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button className="rounded-md bg-[#2878c7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f65a8]" type="button" onClick={() => navigate(`/job-details/${job._id}`)}>Apply</button>
+              </div>
+            </div>
           </div>
+        </article>
+      ))}
+
+      {visibleJobs.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+          <h2 className="text-sm font-semibold text-slate-800">No jobs match these filters</h2>
+          <p className="mt-1 text-sm text-slate-500">Try changing your search or clearing the filters.</p>
+          <button className="mt-4 text-sm font-semibold text-blue-600 hover:underline" type="button" onClick={clearFilters}>Clear all filters</button>
+        </div>
+      )}
+    </>
+  )}
+</div>
 
           {filteredJobs.length > 0 && <nav className="mt-6 flex items-center justify-center gap-1.5" aria-label="Job result pages">
             <button className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-40" type="button" onClick={() => setPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} aria-label="Previous page">‹</button>
