@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RoleSelector from './RoleSelector'
+import { setUser } from '../redux/userSlice';
 
 const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
   const [loading,setLoading] = useState(false);
@@ -84,6 +85,8 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
     setLoading(false);
   }
  }
+
+
 
   return (
     <section className="bg-white px-6 py-8 sm:px-12 lg:px-10 lg:py-9" aria-label={`${isApplicant ? 'Applicant' : 'Recruiter'} signup form`}>

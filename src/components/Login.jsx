@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import {useNavigate} from 'react-router-dom'
 import Naukri from '../assets/Naukri.png'
-
 const Login = ({ onRegister }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [email,setEmail] = useState("");
@@ -9,6 +8,7 @@ const Login = ({ onRegister }) => {
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState("");
   const navigate = useNavigate();
+
 
   const clickOnSubmit= async (event)=>{
      event.preventDefault();
@@ -50,6 +50,7 @@ const Login = ({ onRegister }) => {
         setLoading(false);
      }
   }
+
 
 
   return (

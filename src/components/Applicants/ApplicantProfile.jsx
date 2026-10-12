@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, MapPin, Phone } from 'lucide-react'
+import { useDispatch, useSelector } from 'react-redux'
+import {setUser} from '../../redux/userSlice';
 
 const normalizeProfile  = (u)=>({
   name: u.fullName || '',
@@ -29,6 +31,11 @@ function ApplicantProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const[error,setError] = useState(null);
   const [loading,setLoading] = useState(true);
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('');
+  const [skillsText, setSkillsText] = useState('')
+  const dispatch = useDispatch()
+  const userData = useSelector((state) => state.user.userData)
 
   useEffect(() => () => {
     if (resumePreviewUrl) URL.revokeObjectURL(resumePreviewUrl)
@@ -55,10 +62,12 @@ function ApplicantProfile() {
 
             const data = await response.json();
             console.log(data);
+            dispatch(setUser(data.userData));
 
             const normalized = normalizeProfile(data.userData);
             setProfile(normalized);
-            setDraft(normalized)
+            setDraft(normalized);
+            setSkillsText(normalized.skills.join(', '))
 
     }catch(err){
      setError(err.message);
@@ -105,13 +114,52 @@ function ApplicantProfile() {
     }))
   }
 
-  const saveProfile = () => {
-    setProfile(draft)
+  const saveProfile = async() => {
+   try{
+    setSaving(true);
+    setSaveError('');
+    if (!userData?._id) throw new Error('User not loaded yet')
+
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      `${import.meta.env.VITE_BACKEND_API}/api/applicant/editProfile/${userData._id}`,
+      {
+        method:'PUT',
+        headers:{
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body:JSON.stringify({
+           fullName: draft.name,
+          email: draft.email,
+          experience: Number(draft.experience),
+          location: draft.location,
+          skills: draft.skills,
+          resume: draft.resume,
+        })
+      }
+    )
+ const data = await response.json()
+    if (!response.ok) throw new Error(data.message || 'Failed to update profile')
+
+    dispatch(setUser(data.userData))           // dashboard header updates too
+    const normalized = normalizeProfile(data.userData)
+    setProfile(normalized)
+    setDraft(normalized)
+    setSkillsText(normalized.skills.join(', '))
     setIsEditing(false)
+
+   }catch(err){
+    setSaveError(err.message);
+   }finally{
+    setSaving(false);
+   }
   }
 
   const cancelEdit = () => {
     setDraft(profile)
+    setSkillsText(profile.skills.join(','))
     setResumePreviewUrl('')
     setIsEditing(false)
   }
@@ -278,8 +326,12 @@ function ApplicantProfile() {
                   <label className="block text-sm font-medium text-slate-700">
                     Skills
                     <input
-                      value={draft.skills.join(', ')}
-                      onChange={(event) => handleSkillsChange(event.target.value)}
+                      value={skillsText}
+                      onChange={(event)=>{
+                        setSkillsText(event.target.value)
+                        handleSkillsChange(event.target.value)
+                        }}
+                      placeholder="React, NodeJs, MongoDB"
                       className="mt-1.5 w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </label>
@@ -320,6 +372,8 @@ function ApplicantProfile() {
                     </div>
                   </div>
 
+                 {saveError && <p className="text-sm text-red-500">{saveError}</p>}
+
                   <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                     <button
                       type="button"
@@ -331,9 +385,10 @@ function ApplicantProfile() {
                     <button
                       type="button"
                       onClick={saveProfile}
-                      className="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:w-auto"
+                      disabled ={saving}
+                      className="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:opacity-60 sm:w-auto"
                     >
-                      Save changes
+                    {saving ? 'Saving...' : 'Save changes'}
                     </button>
                   </div>
                 </div>

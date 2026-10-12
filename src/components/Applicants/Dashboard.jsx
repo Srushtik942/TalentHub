@@ -1,6 +1,10 @@
 import { useState,useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSavedJobs } from '../../Context/SavedJobsContext'
+import {useDispatch,useSelector} from 'react-redux';
+import { setUser } from '../../redux/userSlice';
+
+
 
 function Icon({ name, className = 'h-4 w-4', filled = false }) {
   const common = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
@@ -60,7 +64,9 @@ const Dashboard = () => {
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [jobs,setJobs] = useState([]);
-  const { isSaved, toggleSaved, setSavedIds } = useSavedJobs()
+  const { isSaved, toggleSaved, setSavedIds } = useSavedJobs();
+  const userData = useSelector((state) => state.user.userData);
+  console.log("userData from redux:", userData);
 
 
   const locations = [...new Set(jobs.map((job) => job.location).filter(Boolean))]
@@ -209,6 +215,21 @@ if (sortBy === 'Salary: High to Low') {
       console.error(error);
     }
   }
+ const dispatch = useDispatch();
+
+useEffect(()=>{
+
+  const fetchProfile = async()=>{
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_API}/api/applicant/profile`,{
+      headers:{Authorization : `Bearer ${token}`},
+    });
+    const data = await res.json();
+    dispatch(setUser(data.userData));
+  };
+  fetchProfile();
+ },[]);
 
   return (
     <main className="min-h-screen bg-[#f5f7fb] font-sans text-slate-900">
@@ -237,10 +258,10 @@ if (sortBy === 'Salary: High to Low') {
 
 >
   <span className="grid h-9 w-9 place-items-center rounded-full bg-[#e9eef8] text-sm font-bold text-slate-700 ring-2 ring-white ">
-    {getInitials(user?.fullName)}
+    {getInitials(userData?.fullName)}
   </span>
   <span className="hidden max-w-[140px] truncate text-sm font-semibold text-slate-700 sm:inline">
-    {user?.fullName}
+    {userData?.fullName}
   </span>
 </button>
           </div>
