@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import JobDetailsSkeleton from './JobDetailsSkeleton'
+import { getAppliedJobIds, updateAppliedJobStatus } from '../../utils/appliedJobs'
 
 function Icon({ name, className = 'h-4 w-4' }) {
   const base = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
@@ -102,12 +103,14 @@ function JobDetails() {
             setJob(data?.job)
 
             const application = data?.application ?? data?.job?.application
-            if(application && application.status !== 'withdrawn'){
-              setApplied(true)
-              setApplyJobs([application])
-            }else{
-              setApplied(false)
-              setApplyJobs([])
+            const applicationStatus = data?.status ?? application?.status
+            const isApplied = applicationStatus === 'applied'
+              || (applicationStatus == null && getAppliedJobIds().some((id) => String(id) === String(jobId)))
+
+            setApplied(isApplied)
+            setApplyJobs(application ? [application] : [])
+            if (applicationStatus != null) {
+              updateAppliedJobStatus(jobId, applicationStatus === 'applied')
             }
 
         }catch(err){
@@ -228,8 +231,12 @@ const skills = (job.requiredSkills ?? '')
         throw new Error(data?.message || "Failed to apply");
       }
 
-      setApplyJobs((prev)=> [...prev, data.application]);
-      setApplied(true);
+      const isApplied = data?.status === 'applied' || data?.application?.status === 'applied';
+      setApplied(isApplied);
+      if (isApplied && data.application) {
+        setApplyJobs((prev) => [...prev, data.application]);
+      }
+      updateAppliedJobStatus(jobId, isApplied)
     }catch(error){
       console.error(error);
     }finally {
@@ -267,6 +274,7 @@ const skills = (job.requiredSkills ?? '')
 
     setApplyJobs((prev)=> prev.filter((app)=> app._id !== application._id));
     setApplied(false);
+    updateAppliedJobStatus(jobId, false)
     }catch(error){
       console.error(error);
 

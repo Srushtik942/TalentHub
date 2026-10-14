@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSavedJobs } from '../../Context/SavedJobsContext'
 import {useDispatch,useSelector} from 'react-redux';
 import { setUser, clearUser } from '../../redux/userSlice';
+import { getAppliedJobIds, updateAppliedJobStatus } from '../../utils/appliedJobs'
 
 
 
@@ -88,6 +89,7 @@ const Dashboard = () => {
   const [page, setPage] = useState(1)
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [jobs,setJobs] = useState([]);
+  const [appliedJobIds, setAppliedJobIds] = useState(getAppliedJobIds)
   const [loadingJobs, setLoadingJobs] = useState(true)
   const { isSaved, toggleSaved, setSavedIds } = useSavedJobs();
   const userData = useSelector((state) => state.user.userData);
@@ -131,6 +133,23 @@ useEffect(() => {
     // console.log("jobs",recruiterJobs?.jobs);
 
     setJobs(recruiterJobs);
+    const appliedFromServer = recruiterJobs
+      .filter((job) => job.application?.status === 'applied' || job.applicationStatus === 'applied')
+      .map((job) => job._id)
+    const serverApplications = recruiterJobs.filter((job) => job.application || job.applicationStatus)
+    let nextAppliedJobIds = getAppliedJobIds()
+    serverApplications.forEach((job) => {
+      nextAppliedJobIds = updateAppliedJobStatus(
+        job._id,
+        job.application?.status === 'applied' || job.applicationStatus === 'applied',
+      )
+    })
+    appliedFromServer.forEach((jobId) => {
+      if (!nextAppliedJobIds.some((id) => String(id) === String(jobId))) {
+        nextAppliedJobIds = updateAppliedJobStatus(jobId, true)
+      }
+    })
+    setAppliedJobIds(nextAppliedJobIds)
     setSavedIds(recruiterJobs.filter((job) => job.isSaved).map((job) => job._id))
 
 }catch(error){
@@ -418,8 +437,16 @@ Logout
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-sm text-slate-600">{job.employmentType}</span>
                 <span className="flex items-center gap-1.5">Posted on {formatDate(job.createdAt)}</span>
               </div>
-              <div className="mt-4 flex justify-end">
-                <button className="rounded-md bg-[#2878c7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f65a8]" type="button" onClick={() => navigate(`/job-details/${job._id}`)}>Apply</button>
+              <div className="mt-4 flex justify-end gap-2">
+                <button className="rounded-md border border-blue-200 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50" type="button" onClick={() => navigate(`/job-details/${job._id}`)}>View Details</button>
+                <button
+                  className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition ${appliedJobIds.some((id) => String(id) === String(job._id)) ? 'cursor-not-allowed bg-slate-500' : 'bg-[#2878c7] hover:bg-[#1f65a8]'}`}
+                  type="button"
+                  onClick={() => navigate(`/job-details/${job._id}`)}
+                  disabled={appliedJobIds.some((id) => String(id) === String(job._id))}
+                >
+                  {appliedJobIds.some((id) => String(id) === String(job._id)) ? 'Applied' : 'Apply'}
+                </button>
               </div>
             </div>
           </div>
