@@ -41,7 +41,7 @@ const Login = ({ onRegister }) => {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        navigate("/dashboard")
+        navigate(data.user?.role === 'recruiter' ? '/recruiter/dashboard' : '/dashboard')
 
      }catch(err){
         setError("Something went wrong. Please try again",err);

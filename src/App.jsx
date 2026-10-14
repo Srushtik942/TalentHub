@@ -7,6 +7,10 @@ import Dashboard from './components/Applicants/Dashboard'
 import JobDetails from './components/Applicants/JobDetails'
 import LandingPage from './components/LandingPage'
 import ApplicantProfile from './components/Applicants/ApplicantProfile'
+import RecruiterDashboard from './components/Recruiter/RecruiterDashboard'
+import RecruiterError from './components/Recruiter/RecruiterError'
+import RecruiterJobEditor from './components/Recruiter/RecruiterJobEditor'
+import RecruiterProfile from './components/Recruiter/RecruiterProfile'
 import './App.css'
 
 function Register() {
@@ -37,6 +41,12 @@ function App() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/job-details/:jobId" element={<JobDetails />} />
       <Route path="/applicant-profile" element={<ApplicantProfile />} />
+      <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+      <Route path="/recruiter/profile" element={<RecruiterProfile />} />
+      <Route path="/recruiter/jobs/new" element={<RecruiterJobEditor />} />
+      <Route path="/recruiter/jobs/:jobId/edit" element={<RecruiterJobEditor />} />
+      <Route path="/recruiter/error" element={<RecruiterError />} />
+      <Route path="*" element={<RecruiterError />} />
     </Routes>
   )
 }
