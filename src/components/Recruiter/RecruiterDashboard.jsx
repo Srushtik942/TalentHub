@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Archive,
@@ -17,20 +17,11 @@ function getApplicationId(application) {
   return application.id ?? application._id ?? application.email
 }
 
-function getRecentApplications(jobs) {
-  return jobs
-    .flatMap((job) => (job.applications ?? []).map((application) => ({
-      ...application,
-      jobId: job.id,
-      jobTitle: job.title,
-    })))
-    .sort((first, second) => new Date(second.appliedAt ?? 0) - new Date(first.appliedAt ?? 0))
-    .slice(0, 5)
-}
 
 function RecruiterDashboard() {
   const navigate = useNavigate()
   const [jobs, setJobs] = useState(getRecruiterJobs)
+  const [recentApplications, setRecentApplications] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState('')
   const [error, setError] = useState('')
   const activeJobs = jobs.filter((job) => !job.archived)
@@ -40,7 +31,6 @@ function RecruiterDashboard() {
     0,
   )
   const archivedJobs = jobs.filter((job) => job.archived)
-  const recentApplications = getRecentApplications(jobs)
 
   function updateJobs(nextJobs) {
     try {
@@ -60,6 +50,35 @@ function RecruiterDashboard() {
         : { ...application, shortlisted: !application.shortlisted }),
     }))
   }
+
+  useEffect(()=>{
+  const getRecentApplications = async ()=>{
+    try{
+     const token = localStorage.getItem("token");
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/api/recruiter/applications`,
+      {
+         headers:{
+                  Authorization: `Bearer ${token}`
+                }
+      })
+      console.log("response",response);
+
+
+      if(!response.ok){
+        throw new Error("Failed to fetch application");
+      }
+
+      const data = await response.json();
+      console.log("data",data);
+      setRecentApplications(data?.applications);
+
+    }catch(error){
+      console.log(error);
+    }
+  };
+  getRecentApplications();
+},[]);
 
   return (
     <RecruiterShell title="Recruiter dashboard" subtitle="Manage your job posts and review candidate activity.">
@@ -127,12 +146,12 @@ function RecentApplications({ applications, onToggleShortlist }) {
               {applications.map((application) => (
                 <tr className="border-b border-slate-100 last:border-0" key={`${application.jobId}-${getApplicationId(application)}`}>
                   <td className="px-3 py-3">
-                    <p className="font-semibold">{application.fullName || 'Candidate'}</p>
+                    <p className="font-semibold">{application?.applicant?.fullName || 'Candidate'}</p>
                     <p className="text-xs text-slate-500">{application.email}</p>
                   </td>
-                  <td className="px-3 py-3">{application.jobTitle}</td>
+                  <td className="px-3 py-3">{application?.job?.title}</td>
                   <td className="px-3 py-3">{application.appliedAt ? new Date(application.appliedAt).toLocaleDateString() : '—'}</td>
-                  <td className="px-3 py-3">{application.experience || '—'}</td>
+                  <td className="px-3 py-3">{application?.applicant?.experience || '—'}</td>
                   <td className="px-3 py-3">{application.shortlisted ? 'Shortlisted' : application.status || 'New'}</td>
                   <td className="px-3 py-3">
                     <button
