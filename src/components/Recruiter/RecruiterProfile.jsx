@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState,useEffect } from 'react'
 import { Building2, Pencil } from 'lucide-react'
 import { getRecruiterProfile, saveRecruiterProfile } from '../../utils/recruiterStorage'
 import RecruiterShell from './RecruiterShell'
@@ -19,6 +19,7 @@ function RecruiterProfile() {
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [profileData, setProfileData] = useState("");
 
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }))
@@ -38,8 +39,34 @@ function RecruiterProfile() {
     }
   }
 
+  useEffect(()=>{
+    const fetchRecruiterProfile = async()=>{
+      const token = localStorage.getItem("token");
+      if(!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/api/recruiter/profile`,
+        {
+          headers:{
+            Authorization : `Bearer ${token}`
+          }
+        });
+
+        if(!response.ok){
+          throw new Error("Failed to fetch recruiter profile")
+        }
+
+        const data = await response.json();
+        console.log(data);
+        setProfileData(data?.userData);
+        setProfile(data?.userData);
+        setDraft(data?.userData);
+    }
+    fetchRecruiterProfile();
+  },[]);
+
+
   return (
-    <RecruiterShell title="Company profile" subtitle="Keep your recruiter and company information up to date.">
+    <RecruiterShell title="Recruiter profile" subtitle="Keep your recruiter and company information up to date.">
       <form className="rounded-xl border border-slate-200 bg-white p-5 sm:p-7" onSubmit={saveProfile}>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
