@@ -21,7 +21,9 @@ function getApplicationId(application) {
 function RecruiterDashboard() {
   const navigate = useNavigate()
   const [jobs, setJobs] = useState(getRecruiterJobs)
-  const [recentApplications, setRecentApplications] = useState([]);
+  const [recentApplications, setRecentApplications] = useState([])
+  const [loadingRecentApplications, setLoadingRecentApplications] = useState(true)
+  const [recentApplicationsError, setRecentApplicationsError] = useState('')
   const [selectedJobId, setSelectedJobId] = useState('')
   const [error, setError] = useState('')
   const activeJobs = jobs.filter((job) => !job.archived)
@@ -51,34 +53,53 @@ function RecruiterDashboard() {
     }))
   }
 
-  useEffect(()=>{
-  const getRecentApplications = async ()=>{
-    try{
-     const token = localStorage.getItem("token");
+useEffect(() => {
+  const controller = new AbortController()
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/api/recruiter/applications`,
-      {
-         headers:{
-                  Authorization: `Bearer ${token}`
-                }
-      })
-      console.log("response",response);
+  const getRecentApplications = async () => {
+    try {
+      const token = localStorage.getItem('token')
 
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/api/recruiter/applications`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        },
+      )
 
-      if(!response.ok){
-        throw new Error("Failed to fetch application");
+      if (response.status === 404) {
+        setRecentApplications([])
+        setRecentApplicationsError('')
+        return
       }
 
-      const data = await response.json();
-      console.log("data",data);
-      setRecentApplications(data?.applications);
+      if (!response.ok) {
+        throw new Error('Failed to fetch applications')
+      }
 
-    }catch(error){
-      console.log(error);
+      const data = await response.json()
+      const applications = data?.applications ?? []
+
+      if (!Array.isArray(applications)) {
+        throw new Error('The recent applications response was invalid.')
+      }
+
+      setRecentApplications(applications)
+      setRecentApplicationsError('')
+    } catch (error) {
+      if (error.name === 'AbortError') return
+      setRecentApplicationsError(
+        error instanceof Error ? error.message : 'Could not load recent applications.',
+      )
+    } finally {
+      if (!controller.signal.aborted) setLoadingRecentApplications(false)
     }
-  };
-  getRecentApplications();
-},[]);
+  } // closes getRecentApplications
+
+  getRecentApplications()
+  return () => controller.abort()
+}, [])
 
   return (
     <RecruiterShell title="Recruiter dashboard" subtitle="Manage your job posts and review candidate activity.">
@@ -89,12 +110,17 @@ function RecruiterDashboard() {
         <SummaryCard icon={Archive} label="Archived jobs" value={archivedJobs.length} />
       </div>
 
-      <RecentApplications applications={recentApplications} onToggleShortlist={toggleShortlist} />
+      <RecentApplications
+        applications={recentApplications}
+        error={recentApplicationsError}
+        isLoading={loadingRecentApplications}
+        onToggleShortlist={toggleShortlist}
+      />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold">Your job posts</h2>
-        <button className={primaryButtonClass} type="button" onClick={() => navigate('/recruiter/jobs/new')}>
-          <Plus className="h-4 w-4" />Post a job
+        <button className={secondaryButtonClass} type="button" disabled title="AI-Hiring Assistant integration is coming soon">
+          <Sparkles className="h-4 w-4" />AI-Hiring Assistant
         </button>
       </div>
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
@@ -120,14 +146,18 @@ function RecruiterDashboard() {
   )
 }
 
-function RecentApplications({ applications, onToggleShortlist }) {
+function RecentApplications({ applications, error, isLoading, onToggleShortlist }) {
   return (
     <section className="mb-7 rounded-xl border border-slate-200 bg-white p-4 sm:p-5" aria-labelledby="recent-applications-heading">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold" id="recent-applications-heading">Recent applications</h2>
         <span className="text-sm text-slate-600">{applications.length} shown</span>
       </div>
-      {applications.length === 0 ? (
+      {isLoading ? (
+        <RecentApplicationsShimmer />
+      ) : error ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p>
+      ) : applications.length === 0 ? (
         <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">Applicant records will appear here when application data is connected.</p>
       ) : (
         <div className="overflow-x-auto">
@@ -169,6 +199,31 @@ function RecentApplications({ applications, onToggleShortlist }) {
         </div>
       )}
     </section>
+  )
+}
+
+function RecentApplicationsShimmer() {
+  return (
+    <div className="space-y-3" role="status" aria-label="Loading recent applications" aria-busy="true">
+      {[0, 1, 2].map((row) => (
+        <div className="animate-pulse rounded-lg border border-slate-100 p-4" key={row}>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-4 w-1/3 rounded bg-slate-200" />
+              <div className="h-3 w-1/2 rounded bg-slate-100" />
+            </div>
+            <div className="h-8 w-24 rounded-lg bg-slate-200" />
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="h-4 w-3/4 rounded bg-slate-100" />
+            <div className="h-4 w-2/3 rounded bg-slate-100" />
+            <div className="h-4 w-1/2 rounded bg-slate-100" />
+          </div>
+        </div>
+      ))}
+      <span className="sr-only">Loading recent applications</span>
+    </div>
   )
 }
 

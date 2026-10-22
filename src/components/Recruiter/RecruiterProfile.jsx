@@ -7,9 +7,9 @@ import { inputClass, primaryButtonClass, secondaryButtonClass } from './recruite
 const fields = [
   ['fullName', 'Full name'],
   ['email', 'Email'],
-  ['experience', 'Recruiting experience'],
-  ['location', 'Location'],
   ['companyName', 'Company name'],
+  ['location', 'Location'],
+  ['companySize', 'Company Size'],
   ['website', 'Website'],
 ]
 
