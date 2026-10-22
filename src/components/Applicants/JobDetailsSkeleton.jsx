@@ -1,7 +1,7 @@
-
-
-export function Bar({ className = '' }) {
-  return <div className={`animate-pulse rounded-md bg-slate-200 ${className}`} />
+export function Bar({ className = "" }) {
+  return (
+    <div className={`animate-pulse rounded-md bg-slate-200 ${className}`} />
+  );
 }
 
 function JobDetailsSkeleton() {
@@ -74,7 +74,7 @@ function JobDetailsSkeleton() {
         </div>
       </main>
     </div>
-  )
+  );
 }
 
-export default JobDetailsSkeleton
+export default JobDetailsSkeleton;
