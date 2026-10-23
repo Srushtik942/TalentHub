@@ -10,6 +10,7 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from "./recruiterStyles";
+import { getLoggedInUserId } from "../../utils/auth";
 
 const fields = [
   ["fullName", "Full name"],
@@ -27,25 +28,38 @@ function RecruiterProfile() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [profileData, setProfileData] = useState("");
+  const userId = getLoggedInUserId();
 
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
-  function saveProfile(event) {
+  async function saveProfile(event) {
     event.preventDefault();
-    try {
-      saveRecruiterProfile(draft);
-      setProfile(draft);
-      setEditing(false);
-      setError("");
-      setNotice("Profile saved in this browser.");
-    } catch {
-      setError(
-        "Could not save your profile. Check available browser storage and try again.",
-      );
-      setNotice("");
-    }
+    const token = localStorage.getItem("token");
+   try{
+    const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/api/recruiter/editProfile/${userId}`,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(draft),
+    });
+     if (!response.ok) throw new Error("Unable to update the profile");
+
+    const data = await response.json();
+    const updated = data?.userData ?? draft;
+    setProfile(updated);
+    setDraft(updated);
+    setEditing(false);
+    setError("");
+    setNotice("Profile updated successfully.");
+
+   }catch(err){
+    setError(err.message || "Unable to update the profile");
+    setNotice("");
+   }
   }
 
   useEffect(() => {
@@ -74,6 +88,8 @@ function RecruiterProfile() {
     };
     fetchRecruiterProfile();
   }, []);
+
+
 
   return (
     <RecruiterShell

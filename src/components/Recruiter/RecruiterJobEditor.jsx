@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getRecruiterJobs,
-  getRecruiterProfile,
   saveRecruiterJobs,
 } from "../../utils/recruiterStorage";
 import RecruiterError from "./RecruiterError";
