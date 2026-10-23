@@ -223,9 +223,13 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                     <option value="" disabled>
                       Select company size
                     </option>
-                    <option>1-50 employees</option>
-                    <option>51-250 employees</option>
-                    <option>251+ employees</option>
+
+                    "11-50 employees", "51-200 employees", "201-500 employees",
+                    <option>11-50 employees</option>
+                    <option>51-200 employees</option>
+                    <option>201-500 employees</option>
+                    <option>501-1000 employees</option>
+                    <option>1000+ employees</option>
                   </select>
                 </label>
                 <label className="text-xs font-semibold text-slate-700">

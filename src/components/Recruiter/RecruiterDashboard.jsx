@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {getLoggedInUserId} from "../../utils/auth";
 import {
   Archive,
   BriefcaseBusiness,
@@ -24,24 +25,25 @@ function RecruiterDashboard() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState(getRecruiterJobs);
   const [recentApplications, setRecentApplications] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
   const [loadingRecentApplications, setLoadingRecentApplications] =
     useState(true);
   const [recentApplicationsError, setRecentApplicationsError] = useState("");
   const [selectedJobId, setSelectedJobId] = useState("");
   const [error, setError] = useState("");
-  const activeJobs = jobs.filter((job) => !job.archived);
-  const applicationCount = jobs.reduce(
-    (total, job) => total + (job.applications?.length ?? 0),
-    0,
-  );
-  const shortlistedCount = jobs.reduce(
-    (total, job) =>
-      total +
-      (job.applications ?? []).filter((application) => application.shortlisted)
-        .length,
-    0,
-  );
-  const archivedJobs = jobs.filter((job) => job.archived);
+  const useId = getLoggedInUserId();
+  const myJobs = jobs.filter((job)=> (job.postedBy) === useId);
+  const activeJobs = myJobs.filter((job)=> !job.archived);
+  const archivedJobs = myJobs.filter((job) => job.archived);
+   const applicationCount = myJobs.reduce(
+  (total, job) => total + (job.applications?.length ?? 0),
+  0,
+);
+const shortlistedCount = myJobs.reduce(
+  (total, job) =>
+    total + (job.applications ?? []).filter((a) => a.shortlisted).length,
+  0,
+);
 
   function updateJobs(nextJobs) {
     try {
