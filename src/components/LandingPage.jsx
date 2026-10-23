@@ -27,12 +27,14 @@ const LandingPage = () => {
           </Link>
           <Link
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold transition hover:border-[#2878c7] hover:text-[#2878c7]"
+            data-testid ="signIn-btn"
             to="/login"
           >
             Sign in
           </Link>
           <Link
             className="rounded-md bg-[#2878c7] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f65a8]"
+            data-testid="create-account-btn"
             to="/register"
           >
             Create account
@@ -63,6 +65,7 @@ const LandingPage = () => {
             <Link
               className="inline-flex min-h-12 items-center rounded-md px-4 text-sm font-semibold text-[#263746] transition hover:bg-white/70"
               to="/register"
+              data-testid = "hiring-btn"
             >
               I’m hiring
             </Link>

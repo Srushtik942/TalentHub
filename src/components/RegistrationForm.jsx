@@ -282,6 +282,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
             className="w-full rounded-lg bg-blue-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
             type="submit"
             disabled={loading}
+            id="create-Btn"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>
