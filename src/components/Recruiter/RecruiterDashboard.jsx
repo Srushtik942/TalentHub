@@ -35,7 +35,8 @@ function RecruiterDashboard() {
   const myJobs = jobs.filter((job)=> (job.postedBy) === useId);
   const activeJobs = myJobs.filter((job)=> !job.archived);
   const archivedJobs = myJobs.filter((job) => job.archived);
-   const applicationCount = myJobs.reduce(
+
+  const applicationCount = myJobs.reduce(
   (total, job) => total + (job.applications?.length ?? 0),
   0,
 );
@@ -56,6 +57,41 @@ const shortlistedCount = myJobs.reduce(
       );
     }
   }
+
+  async function setJobArchived(jobId, isArchived) {
+  const token = localStorage.getItem("token");
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_BACKEND_API}/api/recruiter/jobs/${jobId}/archive`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isArchived }),
+      },
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data?.message ||
+          "Failed to archive the job.",
+      );
+    }
+
+    updateJobs(
+      jobs.map((job) =>
+        job.id === jobId ? { ...job, archived: isArchived, isArchived } : job,
+      ),
+    );
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Could not update the job.");
+  }
+}
 
   function toggleShortlist(jobId, applicationId) {
     updateJobs(
@@ -189,13 +225,7 @@ const shortlistedCount = myJobs.reduce(
               job={job}
               selected={selectedJobId === job.id}
               onEdit={() => navigate(`/recruiter/jobs/${job.id}/edit`)}
-              onArchive={() =>
-                updateJobs(
-                  jobs.map((item) =>
-                    item.id === job.id ? { ...item, archived: true } : item,
-                  ),
-                )
-              }
+              onArchive={() => setJobArchived(job.id, true)}
               onToggleApplications={() =>
                 setSelectedJobId(selectedJobId === job.id ? "" : job.id)
               }
@@ -206,13 +236,6 @@ const shortlistedCount = myJobs.reduce(
       )}
       <ArchivedJobs
         jobs={archivedJobs}
-        onRestore={(jobId) =>
-          updateJobs(
-            jobs.map((job) =>
-              job.id === jobId ? { ...job, archived: false } : job,
-            ),
-          )
-        }
       />
     </RecruiterShell>
   );
@@ -248,7 +271,7 @@ function RecentApplications({
         </p>
       ) : applications.length === 0 ? (
         <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
-          Applicant records will appear here when application data is connected.
+          No applications for the jobpost.
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -482,8 +505,10 @@ function JobPost({
   );
 }
 
-function ArchivedJobs({ jobs, onRestore }) {
+
+function ArchivedJobs({ jobs }) {
   if (jobs.length === 0) return null;
+
 
   return (
     <details className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
@@ -497,13 +522,6 @@ function ArchivedJobs({ jobs, onRestore }) {
             key={job.id}
           >
             <span>{job.title}</span>
-            <button
-              className={secondaryButtonClass}
-              type="button"
-              onClick={() => onRestore(job.id)}
-            >
-              Restore
-            </button>
           </li>
         ))}
       </ul>

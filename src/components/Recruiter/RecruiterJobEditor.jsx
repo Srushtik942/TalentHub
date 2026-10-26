@@ -42,6 +42,29 @@ function RecruiterJobEditor() {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+    async function updateJobpost(jobId,payload,token) {
+    const response = await fetch(
+      `${import.meta.env.VITE_BACKEND_API}/api/recruiter/jobs/${jobId}`,
+      {
+        method:"PUT",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:`Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    const data = await response.json().catch(()=>({}));
+
+    if(!response.ok){
+      throw new Error(data?.message || "Failed to update the job post");
+    }
+    return data?.job ?? data;
+
+  }
+
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -136,10 +159,13 @@ function RecruiterJobEditor() {
         };
         saveRecruiterJobs([newJob, ...jobs]);
       } else {
+        const saved = await updateJobpost(jobId, payload, token);
         const job = {
           ...currentJob,
           ...payload,
-          archived: false,
+          ...saved,
+          id: saved?._id ?? saved?.id ?? jobId,
+
         };
         saveRecruiterJobs(jobs.map((item) => (item.id === jobId ? job : item)));
       }
@@ -158,6 +184,9 @@ function RecruiterJobEditor() {
   if (jobId && !currentJob) {
     return <RecruiterError message="The job post could not be found." />;
   }
+
+
+
 
   return (
     <RecruiterShell
