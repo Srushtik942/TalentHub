@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {getLoggedInUserId} from "../../utils/auth";
+import { getLoggedInUserId } from "../../utils/auth";
 import {
   Archive,
   BriefcaseBusiness,
   Pencil,
   Plus,
   Sparkles,
+  Trash2,
   UsersRound,
 } from "lucide-react";
 import {
@@ -21,35 +22,39 @@ function getApplicationId(application) {
   return application.id ?? application._id ?? application.email;
 }
 
+function getJobId(job) {
+  return job.id ?? job._id;
+}
+
 function RecruiterDashboard() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState(getRecruiterJobs);
   const [recentApplications, setRecentApplications] = useState([]);
-  const [loadingJobs, setLoadingJobs] = useState(true);
   const [loadingRecentApplications, setLoadingRecentApplications] =
     useState(true);
   const [recentApplicationsError, setRecentApplicationsError] = useState("");
   const [selectedJobId, setSelectedJobId] = useState("");
   const [error, setError] = useState("");
+  const [showAiPreview, setShowAiPreview] = useState(false);
   const useId = getLoggedInUserId();
-  const myJobs = jobs.filter((job)=> (job.postedBy) === useId);
-  const activeJobs = myJobs.filter((job)=> !job.archived);
+  const myJobs = jobs.filter((job) => job.postedBy === useId);
+  const activeJobs = myJobs.filter((job) => !job.archived);
   const archivedJobs = myJobs.filter((job) => job.archived);
 
   const applicationCount = myJobs.reduce(
-  (total, job) => total + (job.applications?.length ?? 0),
-  0,
-);
-const shortlistedCount = myJobs.reduce(
-  (total, job) =>
-    total + (job.applications ?? []).filter((a) => a.shortlisted).length,
-  0,
-);
+    (total, job) => total + (job.applications?.length ?? 0),
+    0,
+  );
+  const shortlistedCount = myJobs.reduce(
+    (total, job) =>
+      total + (job.applications ?? []).filter((a) => a.shortlisted).length,
+    0,
+  );
 
   function updateJobs(nextJobs) {
+    setJobs(nextJobs);
     try {
       saveRecruiterJobs(nextJobs);
-      setJobs(nextJobs);
       setError("");
     } catch {
       setError(
@@ -59,44 +64,82 @@ const shortlistedCount = myJobs.reduce(
   }
 
   async function setJobArchived(jobId, isArchived) {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_BACKEND_API}/api/recruiter/jobs/${jobId}/archive`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/api/recruiter/jobs/${jobId}/archive`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ isArchived }),
         },
-        body: JSON.stringify({ isArchived }),
-      },
-    );
+      );
 
-    const data = await response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
-      throw new Error(
-        data?.message ||
-          "Failed to archive the job.",
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to archive the job.");
+      }
+
+      updateJobs(
+        jobs.map((job) =>
+          getJobId(job) === jobId
+            ? { ...job, archived: isArchived, isArchived }
+            : job,
+        ),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not update the job.",
       );
     }
-
-    updateJobs(
-      jobs.map((job) =>
-        job.id === jobId ? { ...job, archived: isArchived, isArchived } : job,
-      ),
-    );
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Could not update the job.");
   }
-}
+
+  async function deleteJob(jobId) {
+    const job = jobs.find((item) => getJobId(item) === jobId);
+    if (
+      !window.confirm(
+        `Delete ${job?.title} jobpost?`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_API}/api/recruiter/deleteJob/${jobId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      console.log("response",response);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to delete the job post.");
+      }
+
+      updateJobs(jobs.filter((item) => getJobId(item) !== jobId));
+      setSelectedJobId((selected) => (selected === jobId ? "" : selected));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete the job post.",
+      );
+    }
+  }
 
   function toggleShortlist(jobId, applicationId) {
     updateJobs(
       jobs.map((job) =>
-        job.id !== jobId
+        getJobId(job) !== jobId
           ? job
           : {
               ...job,
@@ -200,13 +243,33 @@ const shortlistedCount = myJobs.reduce(
         <button
           className={secondaryButtonClass}
           type="button"
-          disabled
-          title="AI-Hiring Assistant integration is coming soon"
+          onClick={() => setShowAiPreview((shown) => !shown)}
+          aria-expanded={showAiPreview}
         >
           <Sparkles className="h-4 w-4" />
           AI-Hiring Assistant
         </button>
       </div>
+      {showAiPreview && (
+        <div
+          className="mb-4 flex flex-col gap-4 rounded-xl border border-blue-100 bg-white p-4 sm:flex-row sm:items-center"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className="grid w-full animate-pulse gap-2 sm:max-w-48"
+            aria-hidden="true"
+          >
+            <div className="h-3 w-3/4 rounded bg-blue-100" />
+            <div className="h-3 w-full rounded bg-slate-100" />
+            <div className="h-3 w-5/6 rounded bg-slate-100" />
+          </div>
+          <p className="text-sm text-slate-600">
+            AI shortlist preview. Application shortlisting will be available
+            when the AI API is integrated; no applications have been changed.
+          </p>
+        </div>
+      )}
       {error && (
         <p
           className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
@@ -221,22 +284,23 @@ const shortlistedCount = myJobs.reduce(
         <div className="space-y-3">
           {activeJobs.map((job) => (
             <JobPost
-              key={job.id}
+              key={getJobId(job)}
               job={job}
-              selected={selectedJobId === job.id}
-              onEdit={() => navigate(`/recruiter/jobs/${job.id}/edit`)}
-              onArchive={() => setJobArchived(job.id, true)}
+              selected={selectedJobId === getJobId(job)}
+              onEdit={() => navigate(`/recruiter/jobs/${getJobId(job)}/edit`)}
+              onArchive={() => setJobArchived(getJobId(job), true)}
+              onDelete={() => deleteJob(getJobId(job))}
               onToggleApplications={() =>
-                setSelectedJobId(selectedJobId === job.id ? "" : job.id)
+                setSelectedJobId(
+                  selectedJobId === getJobId(job) ? "" : getJobId(job),
+                )
               }
               onToggleShortlist={toggleShortlist}
             />
           ))}
         </div>
       )}
-      <ArchivedJobs
-        jobs={archivedJobs}
-      />
+      <ArchivedJobs jobs={archivedJobs} onDelete={deleteJob} />
     </RecruiterShell>
   );
 }
@@ -400,6 +464,7 @@ function JobPost({
   selected,
   onEdit,
   onArchive,
+  onDelete,
   onToggleApplications,
   onToggleShortlist,
 }) {
@@ -447,6 +512,15 @@ function JobPost({
             <Archive className="h-4 w-4" />
             Archive
           </button>
+          <button
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+            type="button"
+            onClick={onDelete}
+            aria-label={`Delete ${job.title} job post`}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </button>
         </div>
       </div>
       {selected && (
@@ -490,7 +564,10 @@ function JobPost({
                     }
                     type="button"
                     onClick={() =>
-                      onToggleShortlist(job.id, getApplicationId(application))
+                      onToggleShortlist(
+                        getJobId(job),
+                        getApplicationId(application),
+                      )
                     }
                   >
                     {application.shortlisted ? "Shortlisted" : "Shortlist"}
@@ -505,10 +582,8 @@ function JobPost({
   );
 }
 
-
-function ArchivedJobs({ jobs }) {
+function ArchivedJobs({ jobs, onDelete }) {
   if (jobs.length === 0) return null;
-
 
   return (
     <details className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
@@ -519,9 +594,18 @@ function ArchivedJobs({ jobs }) {
         {jobs.map((job) => (
           <li
             className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-sm"
-            key={job.id}
+            key={getJobId(job)}
           >
-            <span>{job.title}</span>
+            <span className="min-w-0 flex-1 break-words">{job.title}</span>
+            <button
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+              type="button"
+              onClick={() => onDelete(getJobId(job))}
+              aria-label={`Delete ${job.title} job post`}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
           </li>
         ))}
       </ul>

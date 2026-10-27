@@ -14,7 +14,7 @@ function RecruiterShell({ children, title, subtitle }) {
   }
 
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-3 rounded-lg px-4 py-3.5 text-lg font-semibold ${
+    `flex shrink-0 items-center gap-3 whitespace-nowrap rounded-lg px-3 py-3 text-sm font-semibold sm:px-4 sm:text-base md:w-full md:text-lg md:py-3.5 ${
       isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"
     }`;
 
@@ -55,10 +55,10 @@ function RecruiterShell({ children, title, subtitle }) {
           </div>
         </div>
       </header>
-      <div className="mx-auto grid w-full max-w-7xl gap-6 px-3 py-6 sm:px-4 md:grid-cols-[240px_minmax(0,1fr)] md:gap-8 md:py-8">
-        <aside>
+      <div className="grid w-full gap-4 px-2 py-5 sm:gap-6 sm:px-4 sm:py-6 md:grid-cols-[220px_minmax(0,1fr)] md:gap-8 md:py-8">
+        <aside className="min-w-0">
           <nav
-            className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-2 md:sticky md:top-6 md:border-0 md:bg-transparent md:p-0"
+            className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2 md:sticky md:top-6 md:flex-col md:overflow-visible md:border-0 md:bg-transparent md:p-0"
             aria-label="Recruiter navigation"
           >
             <NavLink className={linkClass} to="/recruiter/dashboard">
@@ -75,7 +75,7 @@ function RecruiterShell({ children, title, subtitle }) {
             </NavLink>
           </nav>
         </aside>
-        <section className="min-w-0 px-4 sm:px-6 md:px-0">
+        <section className="min-w-0">
           {(title || subtitle) && (
             <div className="mb-6">
               {title && (

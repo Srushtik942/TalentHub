@@ -106,13 +106,14 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
 
         <form className="mt-6 space-y-4" onSubmit={clickOnSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-xs font-semibold text-slate-700">
+            <label className="text-xs font-semibold text-slate-700 data-testid=name-field">
               Full Name
               <input
                 className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 name="fullName"
                 type="text"
                 placeholder="Enter your full name"
+                data-testid="name-field"
                 required
               />
             </label>
@@ -122,6 +123,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 name="email"
                 type="email"
+                data-testid="email-address"
                 placeholder="Enter your email"
                 required
               />
@@ -135,6 +137,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 name="password"
                 type="password"
+                data-testid="password-field"
                 placeholder="Create a password"
                 required
               />
@@ -145,6 +148,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                 className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 name="confirmPassword"
                 type="password"
+                data-testid="confirm-password"
                 placeholder="Confirm your password"
                 required
               />
@@ -159,6 +163,8 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                   name="experience"
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-sm font-normal text-slate-500 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   defaultValue=""
+                  data-testid="signup-experience"
+
                 >
                   <option value="" disabled>
                     Select your experience
@@ -176,6 +182,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                     name="location"
                     className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     type="text"
+                    data-testid="location-field"
                     placeholder="Enter your current location"
                   />
                 </label>
@@ -186,6 +193,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                     name="skills"
                     className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     type="text"
+                    data-testid="skills-files"
                     placeholder="e.g. React, Node.js, SQL"
                   />
                 </label>
@@ -196,6 +204,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                 <input
                   className="mt-2 block w-full rounded-lg border border-dashed border-slate-300 px-3 py-3 text-sm font-normal text-slate-500 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-blue-600"
                   type="file"
+                  data-testid="resume"
                   accept=".pdf,.doc,.docx"
                 />
               </label>
@@ -249,6 +258,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
             <input
               className="mt-0.5 accent-blue-600"
               type="checkbox"
+              data-testid="agreement-field"
               required
             />{" "}
             <span>
@@ -283,6 +293,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
             type="submit"
             disabled={loading}
             id="create-Btn"
+            data-testid="create-Btn"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>
