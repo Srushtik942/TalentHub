@@ -29,7 +29,7 @@ test('Sign in page loads after clicking on the sign in button',async({page})=>{
 });
 
 test('Applicant can register', async ({ page }) => {
-    test.setTimeout(90000); // the default 30s test timeout is also too short for a cold start
+    test.setTimeout(90000);
 
     page.on('console', (msg) => console.log('BROWSER:', msg.text()));
     page.on('requestfailed', (req) =>
