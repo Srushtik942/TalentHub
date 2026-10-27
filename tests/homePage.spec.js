@@ -28,23 +28,30 @@ test('Sign in page loads after clicking on the sign in button',async({page})=>{
     await expect(page).toHaveURL(/login/);
 });
 
-test('Applicant can register',async({page})=>{
+test('Applicant can register', async ({ page }) => {
+    test.setTimeout(90000); // the default 30s test timeout is also too short for a cold start
+
+    page.on('console', (msg) => console.log('BROWSER:', msg.text()));
+    page.on('requestfailed', (req) =>
+        console.log('REQUEST FAILED:', req.url(), req.failure()?.errorText)
+    );
+
     await page.goto('http://localhost:5173/');
     await page.getByTestId('hiring-btn').click();
     await expect(page).toHaveURL(/register/);
 
-    const data = getApplicantData();
-    await fillApplicantForm(page,data);
+    await fillApplicantForm(page, getApplicantData());
 
     const [response] = await Promise.all([
-        page.waitForResponse((res)=> res.url().includes('/api/auth/register') && res.status() === 201 && res.request().method() === 'POST',
-       {timeout: 20000}
-    ) ,
-    submitSignup(page),
+        page.waitForResponse(
+            (res) =>
+                res.url().includes('/api/auth/register') &&
+                res.request().method() === 'POST',
+            { timeout: 60000 }
+        ),
+        submitSignup(page),
     ]);
 
-    console.log("Register API :", response.status(),await response.text());
-
+    console.log('Register API :', response.status(), await response.text());
     expect(response.status()).toBe(201);
-
 });
