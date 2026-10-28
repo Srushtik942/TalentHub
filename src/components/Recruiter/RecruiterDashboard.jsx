@@ -26,6 +26,12 @@ function getJobId(job) {
   return job.id ?? job._id;
 }
 
+function getApplicationCount(applications, job){
+   const jobId = getJobId(job);
+   return applications.filter((app)=> (app?.job?._id ) === jobId).length;
+}
+
+
 function RecruiterDashboard() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState(getRecruiterJobs);
@@ -39,6 +45,9 @@ function RecruiterDashboard() {
   const useId = getLoggedInUserId();
   const myJobs = jobs.filter((job) => job.postedBy === useId);
   const activeJobs = myJobs.filter((job) => !job.archived);
+  console.log("activeJobs",activeJobs);
+  const activeJobTitle = activeJobs.map((app)=> app?.title);
+  console.log(activeJobTitle);
   const archivedJobs = myJobs.filter((job) => job.archived);
 
   const applicationCount = myJobs.reduce(
@@ -179,7 +188,11 @@ function RecruiterDashboard() {
         }
 
         const data = await response.json();
+        console.log("data",data)
+
         const applications = data?.applications ?? [];
+        const jobTitle = applications.map((jobTitle)=> jobTitle?.job?.title);
+        console.log("jobTitle",jobTitle);
 
         if (!Array.isArray(applications)) {
           throw new Error("The recent applications response was invalid.");
@@ -287,6 +300,7 @@ function RecruiterDashboard() {
               key={getJobId(job)}
               job={job}
               selected={selectedJobId === getJobId(job)}
+              applicationCount={getApplicationCount(recentApplications,job)}
               onEdit={() => navigate(`/recruiter/jobs/${getJobId(job)}/edit`)}
               onArchive={() => setJobArchived(getJobId(job), true)}
               onDelete={() => deleteJob(getJobId(job))}
@@ -467,8 +481,10 @@ function JobPost({
   onDelete,
   onToggleApplications,
   onToggleShortlist,
+  applicationCount
 }) {
   const applications = job.applications ?? [];
+  console.log("applications",applications);
   const topCandidate = [...applications]
     .filter((application) => Number.isFinite(Number(application.matchScore)))
     .sort(
@@ -502,7 +518,7 @@ function JobPost({
             onClick={onToggleApplications}
           >
             <UsersRound className="h-4 w-4" />
-            Applications ({applications.length})
+            Applications ({applicationCount})
           </button>
           <button
             className={secondaryButtonClass}
