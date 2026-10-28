@@ -11,6 +11,7 @@ import RecruiterDashboard from "./components/Recruiter/RecruiterDashboard";
 import RecruiterError from "./components/Recruiter/RecruiterError";
 import RecruiterJobEditor from "./components/Recruiter/RecruiterJobEditor";
 import RecruiterProfile from "./components/Recruiter/RecruiterProfile";
+import RecruiterApplicantDetails from "./components/Recruiter/RecruiterApplicantDetails";
 import "./App.css";
 
 function Register() {
@@ -47,6 +48,10 @@ function App() {
       <Route path="/job-details/:jobId" element={<JobDetails />} />
       <Route path="/applicant-profile" element={<ApplicantProfile />} />
       <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+      <Route
+        path="/recruiter/applicants/:applicationId"
+        element={<RecruiterApplicantDetails />}
+      />
       <Route path="/recruiter/profile" element={<RecruiterProfile />} />
       <Route path="/recruiter/jobs/new" element={<RecruiterJobEditor />} />
       <Route

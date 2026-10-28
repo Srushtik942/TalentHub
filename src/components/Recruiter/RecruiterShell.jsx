@@ -58,7 +58,7 @@ function RecruiterShell({ children, title, subtitle }) {
       <div className="grid w-full gap-4 px-2 py-5 sm:gap-6 sm:px-4 sm:py-6 md:grid-cols-[220px_minmax(0,1fr)] md:gap-8 md:py-8">
         <aside className="min-w-0">
           <nav
-            className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2 md:sticky md:top-6 md:flex-col md:overflow-visible md:border-0 md:bg-transparent md:p-0"
+            className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2 md:sticky md:top-6 md:flex-col md:overflow-visible md:border-0 md:bg-transparent md:p-0 bg-gray-100 shadow-xs"
             aria-label="Recruiter navigation"
           >
             <NavLink className={linkClass} to="/recruiter/dashboard">

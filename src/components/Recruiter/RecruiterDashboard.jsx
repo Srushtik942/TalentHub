@@ -160,6 +160,15 @@ function RecruiterDashboard() {
             },
       ),
     );
+    setRecentApplications((applications) =>
+      applications.map((application) =>
+        getApplicationId(application) !== applicationId ||
+        String(application.jobId ?? application.job?._id ?? application.job?.id) !==
+          String(jobId)
+          ? application
+          : { ...application, shortlisted: !application.shortlisted },
+      ),
+    );
   }
 
   useEffect(() => {
@@ -248,7 +257,11 @@ function RecruiterDashboard() {
         applications={recentApplications}
         error={recentApplicationsError}
         isLoading={loadingRecentApplications}
-        onToggleShortlist={toggleShortlist}
+        onViewDetails={(application) =>
+          navigate(
+            `/recruiter/applicants/${encodeURIComponent(getApplicationId(application))}`,
+          )
+        }
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -323,7 +336,7 @@ function RecentApplications({
   applications,
   error,
   isLoading,
-  onToggleShortlist,
+  onViewDetails,
 }) {
   return (
     <section
@@ -353,7 +366,7 @@ function RecentApplications({
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] text-left text-sm">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-y border-slate-100 text-xs text-slate-500">
               <tr>
                 <th className="px-3 py-3 font-semibold">Applicant</th>
@@ -361,7 +374,7 @@ function RecentApplications({
                 <th className="px-3 py-3 font-semibold">Applied on</th>
                 <th className="px-3 py-3 font-semibold">Experience</th>
                 <th className="px-3 py-3 font-semibold">Status</th>
-                <th className="px-3 py-3 font-semibold">Action</th>
+                <th className="px-3 py-3 font-semibold">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -394,20 +407,11 @@ function RecentApplications({
                   </td>
                   <td className="px-3 py-3">
                     <button
-                      className={
-                        application.shortlisted
-                          ? primaryButtonClass
-                          : secondaryButtonClass
-                      }
+                      className={secondaryButtonClass}
                       type="button"
-                      onClick={() =>
-                        onToggleShortlist(
-                          application.jobId,
-                          getApplicationId(application),
-                        )
-                      }
+                      onClick={() => onViewDetails(application)}
                     >
-                      {application.shortlisted ? "Shortlisted" : "Shortlist"}
+                      View details
                     </button>
                   </td>
                 </tr>
@@ -529,7 +533,7 @@ function JobPost({
             Archive
           </button>
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
             type="button"
             onClick={onDelete}
             aria-label={`Delete ${job.title} job post`}
@@ -614,7 +618,7 @@ function ArchivedJobs({ jobs, onDelete }) {
           >
             <span className="min-w-0 flex-1 break-words">{job.title}</span>
             <button
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+              className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
               type="button"
               onClick={() => onDelete(getJobId(job))}
               aria-label={`Delete ${job.title} job post`}
