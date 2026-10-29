@@ -12,12 +12,27 @@ function getApplicant(application) {
   return { ...application, ...(application?.applicant ?? {}) };
 }
 
+function ApplicantField({ label, value }) {
+  return (
+    <label className="block min-w-0 text-sm font-semibold text-slate-600">
+      {label}
+      <input
+        className="mt-2 h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-normal text-slate-900 outline-none"
+        type="text"
+        value={value || "Not provided"}
+        readOnly
+      />
+    </label>
+  );
+}
+
 function RecruiterApplicantDetails() {
   const { applicationId } = useParams();
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [resumeError, setResumeError] = useState("");
 
 
   useEffect(() => {
@@ -103,6 +118,42 @@ function RecruiterApplicantDetails() {
     }
   }
 
+  async function viewResume() {
+    if (!resume) return;
+
+    const newTab = window.open("", "_blank");
+    setResumeError("");
+    if (!newTab) {
+      setResumeError("Allow pop-ups to view the applicant's resume.");
+      return;
+    }
+
+    try {
+      let resumeUrl = resume;
+      if (!/^(https?:\/\/|\/)/i.test(resume)) {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_API}/api/applicant/resume/download-url?key=${encodeURIComponent(resume)}`,
+          { headers: { Authorization: "Bearer " + token } },
+        );
+        const data = await response.json();
+        if (!response.ok || !data?.url) {
+          throw new Error(data?.message || "Could not open the applicant's resume.");
+        }
+        resumeUrl = data.url;
+      }
+
+      newTab.location.href = resumeUrl;
+    } catch (resumeFetchError) {
+      newTab?.close();
+      setResumeError(
+        resumeFetchError instanceof Error
+          ? resumeFetchError.message
+          : "Could not open the applicant's resume.",
+      );
+    }
+  }
+
   const applicant = application ? getApplicant(application) : {};
   const skills = Array.isArray(applicant.skills)
     ? applicant.skills
@@ -110,6 +161,9 @@ function RecruiterApplicantDetails() {
       ? applicant.skills.split(",").map((skill) => skill.trim()).filter(Boolean)
       : [];
   const resume = applicant.resume ?? application?.resume ?? "";
+  const applicationStatus = application?.shortlisted
+    ? "Shortlisted"
+    : application?.status || "New";
 
   return (
     <RecruiterShell
@@ -129,119 +183,87 @@ function RecruiterApplicantDetails() {
           </p>
         ) : (
           <>
+            <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-start">
+              <div className="min-w-0">
+                <h2 className="text-2xl font-bold">
+                  {applicant.fullName || application.fullName || "Candidate"}
+                </h2>
+                <p className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600">
+                  <MapPin className="h-4 w-4" />
+                  {applicant.location || "Location not provided"}
+                </p>
+              </div>
+              <button
+                className={
+                  application.shortlisted
+                    ? primaryButtonClass
+                    : secondaryButtonClass
+                }
+                type="button"
+                onClick={shortListAplication}
+                disabled={updating || application.status === "shortlisted"}
+              >
+                {application.status === "shortlisted" ? "Shortlisted"  : updating
+      ? "Shortlisting…"
+      : "Shortlist"}
+              </button>
+            </div>
+
             {error && (
               <p className="mt-4 text-sm text-red-700" role="alert">
                 {error}
               </p>
             )}
 
-            <div className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="flex min-w-0 flex-1 flex-col justify-between gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-start lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
-                <div className="min-w-0">
-                  <h2 className="text-2xl font-bold">
-                    {applicant.fullName || application.fullName || "Candidate"}
-                  </h2>
-                  <p className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600">
-                    <MapPin className="h-4 w-4 shrink-0" />
-                    {applicant.location || "Location not provided"}
-                  </p>
-                </div>
-                <button
-                  className={
-                    application.shortlisted
-                      ? primaryButtonClass
-                      : secondaryButtonClass
-                  }
-                  type="button"
-                  onClick={shortListAplication}
-                  disabled={updating || application.status === "shortlisted"}
-                >
-                  {application.status === "shortlisted"
-                    ? "Shortlisted"
-                    : updating
-                      ? "Shortlisting…"
-                      : "Shortlist"}
-                </button>
-              </div>
-
-              <dl className="grid min-w-0 flex-[2] gap-5 sm:grid-cols-2">
-                <div>
-                  <dt className="text-sm font-semibold text-slate-500">Email</dt>
-                  <dd className="mt-1 min-w-0 break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900">
-                    {applicant.emailId ||
-                      applicant.email ||
-                      application.email ||
-                      "Not provided"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-semibold text-slate-500">
-                    Experience
-                  </dt>
-                  <dd className="mt-2 inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">
-                    {applicant.experience != null
-                      ? `${applicant.experience} years`
-                      : "Not provided"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-semibold text-slate-500">Skills</dt>
-                  <dd className="mt-2 flex flex-wrap gap-2">
-                    {skills.length > 0 ? (
-                      skills.map((skill) => (
-                        <span
-                          className="max-w-full break-words rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"
-                          key={skill}
-                        >
-                          {skill}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-slate-600">Not provided</span>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-semibold text-slate-500">Status</dt>
-                  <dd className="mt-2">
-                    <span
-                      className={`inline-flex min-h-8 items-center rounded-full px-3 py-1 text-sm font-semibold ${
-                        application.status === "shortlisted" ||
-                        application.shortlisted
-                          ? "bg-green-50 text-green-700"
-                          : "bg-slate-100 text-slate-700"
-                      }`}
+            <div className="mt-6 grid min-w-0 gap-5 sm:grid-cols-2">
+              <ApplicantField
+                label="Full name"
+                value={applicant.fullName || application.fullName}
+              />
+              <ApplicantField
+                label="Email"
+                value={
+                  applicant.emailId || applicant.email || application.email
+                }
+              />
+              <ApplicantField
+                label="Location"
+                value={applicant.location}
+              />
+              <ApplicantField
+                label="Experience"
+                value={
+                  applicant.experience != null
+                    ? String(applicant.experience) + " years"
+                    : ""
+                }
+              />
+              <ApplicantField
+                label="Skills"
+                value={skills.join(", ")}
+              />
+              <ApplicantField label="Status" value={applicationStatus} />
+              <div className="min-w-0 sm:col-span-2">
+                <p className="text-sm font-semibold text-slate-600">Resume</p>
+                <div className="mt-2">
+                  {resume ? (
+                    <button
+                      className={secondaryButtonClass}
+                      type="button"
+                      onClick={viewResume}
                     >
-                      {application.shortlisted
-                        ? "Shortlisted"
-                        : application.status || "New"}
-                    </span>
-                  </dd>
+                      View resume
+                    </button>
+                  ) : (
+                    <p className="text-sm text-slate-500">Not provided</p>
+                  )}
+                  {resumeError && (
+                    <p className="mt-2 text-sm text-red-700" role="alert">
+                      {resumeError}
+                    </p>
+                  )}
                 </div>
-                <div className="min-w-0 sm:col-span-2">
-                  <dt className="text-sm font-semibold text-slate-500">
-                    Resume
-                  </dt>
-                  <dd className="mt-1 break-all text-slate-900">
-                    {resume ? (
-                      /^(https?:\/\/|\/)/i.test(resume) ? (
-                        <a
-                          className="font-semibold text-blue-700 underline"
-                          href={resume}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View resume
-                        </a>
-                      ) : (
-                        resume
-                      )
-                    ) : (
-                      "Not provided"
-                    )}
-                  </dd>
-                </div>
-              </dl>
+              </div>
             </div>
           </>
         )}
