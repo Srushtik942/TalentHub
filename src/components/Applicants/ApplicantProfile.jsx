@@ -10,6 +10,7 @@ const normalizeProfile = (u) => ({
   location: u.location || "Not Specified",
   email: u.email || "",
   phone: u.phone || "",
+  about: u.about || "",
   experience: u.experience ?? "0",
   availability: u.availability || "Open to work",
   summary: u.summary || "",
@@ -32,6 +33,8 @@ function ApplicantProfile() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [skillsText, setSkillsText] = useState("");
+  const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState("");
   const dispatch = useDispatch();
   const userData = useSelector((state) => state.user.userData);
 
@@ -78,23 +81,35 @@ function ApplicantProfile() {
     fetchProfile();
   }, []);
 
-  const handleResumeUpload = (event) => {
-    const file = event.target.files?.[0];
+ const handleResumeUpload = async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
 
-    if (!file) return;
+  setUploadError("");
 
-    setResumePreviewUrl(URL.createObjectURL(file));
-    setDraft((current) => ({
-      ...current,
-      resume: file.name,
-    }));
-    if (!isEditing) {
-      setProfile((current) =>
-        current ? { ...current, resume: file.name } : current,
-      );
-    }
-    event.target.value = "";
-  };
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    setUploadError("Only PDF, DOC or DOCX files are allowed");
+    return;
+  }
+  if (file.size > MAX_SIZE) {
+    setUploadError("File must be under 5 MB");
+    return;
+  }
+
+  try {
+    setUploading(true);
+    const key = await uploadResume(file);
+
+    setProfile((current) => (current ? { ...current, resume: key } : current));
+    setDraft((current) => (current ? { ...current, resume: key } : current));
+    dispatch(setUser({ ...userData, resume: key })); // keep Redux in sync
+  } catch (err) {
+    setUploadError(err.message);
+  } finally {
+    setUploading(false);
+  }
+};
 
   const handleInputChange = (field, value) => {
     setDraft((current) => ({
@@ -158,6 +173,7 @@ function ApplicantProfile() {
     }
   };
 
+
   const cancelEdit = () => {
     setDraft(profile);
     setSkillsText(profile.skills.join(","));
@@ -181,10 +197,87 @@ function ApplicantProfile() {
     );
   }
 
+  const ALLOWED_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const MAX_SIZE = 5 * 1024 * 1024;
+
+
+const getResumeLabel = (key) =>
+  key ? `Resume (${key.split(".").pop().toUpperCase()})` : "No resume uploaded";
+
+const uploadResume = async (file) => {
+const token = localStorage.getItem("token");
+
+  // Get presigned post data
+  const response = await fetch(
+    `${import.meta.env.VITE_BACKEND_API}/api/applicant/resume/upload-url`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ contentType: file.type }),
+    },
+  );
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Could not get upload url");
+
+  // Upload to S3
+  const formData = new FormData();
+  Object.entries(data.fields).forEach(([k, v]) => formData.append(k, v));
+  formData.append("file", file);
+
+  const s3Res = await fetch(data.url, { method: "POST", body: formData });
+  if (!s3Res.ok) throw new Error("Upload to storage failed");
+
+  // Tell the backend to save the key
+  const confirmResponse = await fetch(
+    `${import.meta.env.VITE_BACKEND_API}/api/applicant/resume/confirm`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ key: data.key }),
+    },
+  );
+  const confirmData = await confirmResponse.json();
+  if (!confirmResponse.ok)
+    throw new Error(confirmData.message || "Could not save resume");
+
+  return data.key;
+};
+
+  const handleViewResume = async () => {
+  const newTab = window.open("", "_blank");
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(
+      `${import.meta.env.VITE_BACKEND_API}/api/applicant/resume/download-url`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Could not open resume");
+
+    if(newTab) newTab.location.href = data.url;
+    else window.location.href = data.url;
+
+
+  } catch (err) {
+    newTab?.close();
+    setUploadError(err.message);
+  }
+};
+
   return (
-    <main className="min-h-screen bg-[#edf4ff] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-[0_18px_45px_rgba(37,99,235,0.12)]">
+    <main className="min-h-screen bg-[#edf4ff]">
+      <div className="min-h-screen w-full">
+        <div className="min-h-screen overflow-hidden border border-blue-100 bg-white shadow-[0_18px_45px_rgba(37,99,235,0.12)]">
           <header className="flex flex-col gap-5 border-b border-blue-100 bg-gradient-to-r from-[#eff6ff] to-[#dfeeff] px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
             <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
               <button
@@ -214,8 +307,8 @@ function ApplicantProfile() {
             </button>
           </header>
 
-          <div className="flex flex-col gap-6 p-4 sm:p-6 lg:flex-row lg:items-start lg:gap-8 lg:p-8">
-            <aside className="w-full rounded-2xl border border-blue-100 bg-[#f8fbff] p-5 lg:max-w-[320px]">
+          <div className="flex flex-col gap-6 p-4 sm:p-6 lg:grid lg:grid-cols-[2fr_3fr] lg:items-start lg:gap-8 lg:p-8">
+            <aside className="w-full min-w-0 rounded-2xl border border-blue-100 bg-[#f8fbff] p-5">
               <div className="flex items-start gap-4">
                 <div className="grid h-16 w-16 place-items-center rounded-2xl bg-blue-600 text-xl font-bold text-white shadow-lg shadow-blue-200">
                   {(profile.name || "?")
@@ -256,35 +349,35 @@ function ApplicantProfile() {
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                <div className="rounded-xl bg-blue-50 p-3 text-center ring-1 ring-blue-100">
-                  <div className="text-lg font-bold text-blue-700">
+              <div className="mt-6 flex flex-row gap-2">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-50 p-2 text-center ring-1 ring-blue-100 sm:p-3">
+                  <div className="whitespace-nowrap text-base font-semibold text-blue-700 sm:text-lg">
                     {profile.experience} Yrs
                   </div>
-                  <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-blue-600">
+                  <div className="text-[9px] font-medium uppercase tracking-[0.08em] text-blue-600 sm:text-[10px] sm:tracking-[0.12em]">
                     Exp
                   </div>
                 </div>
-                <div className="rounded-xl bg-blue-50 p-3 text-center ring-1 ring-blue-100">
-                  <div className="text-lg font-bold text-blue-700">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-50 p-2 text-center ring-1 ring-blue-100 sm:p-3">
+                  <div className="whitespace-nowrap text-base font-semibold text-blue-700 sm:text-lg">
                     {profile.skills.length}
                   </div>
-                  <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-blue-600">
+                  <div className="text-[9px] font-medium uppercase tracking-[0.08em] text-blue-600 sm:text-[10px] sm:tracking-[0.12em]">
                     Skills
                   </div>
                 </div>
-                <div className="rounded-xl bg-blue-50 p-3 text-center ring-1 ring-blue-100">
-                  <div className="text-lg font-bold text-blue-700">
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-50 p-2 text-center ring-1 ring-blue-100 sm:p-3">
+                  <div className="whitespace-nowrap text-base font-semibold text-blue-700 sm:text-lg">
                     {profile.availability === "Open to work" ? "Yes" : "No"}
                   </div>
-                  <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.12em] text-blue-600">
-                    Status
+                  <div className="text-[9px] font-medium uppercase tracking-[0.08em] text-blue-600 sm:text-[10px] sm:tracking-[0.12em]">
+                    Open To Work
                   </div>
                 </div>
               </div>
             </aside>
 
-            <section className="flex-1 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
+            <section className="min-w-0 rounded-2xl border border-blue-100 bg-white p-5 sm:p-6">
               {isEditing ? (
                 <div className="space-y-5">
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -380,27 +473,27 @@ function ApplicantProfile() {
                           Resume
                         </p>
                         <p className="mt-1 break-all text-sm text-slate-600">
-                          {draft.resume || "No resume uploaded yet"}
+                          {getResumeLabel(draft.resume)}
                         </p>
-                        {(resumePreviewUrl || isResumeUrl(draft.resume)) && (
-                          <a
-                            href={resumePreviewUrl || draft.resume}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-2 inline-flex text-sm font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+                        {(draft.resume &&(
+                          <button
+                          type="button"
+                          onClick={handleViewResume}
+                          className="mt-2 inline-flex text-sm font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
                           >
                             Preview resume
-                          </a>
-                        )}
+                          </button>
+                        ))}
                       </div>
 
                       <div className="flex w-full gap-2 sm:w-auto">
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
                           className="w-full rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100 sm:w-auto"
                         >
-                          Upload resume
+                        {uploading ? "Uploading..." : draft.resume ? "Replace resume" : "Upload resume"}
                         </button>
                         <input
                           ref={fileInputRef}
@@ -412,6 +505,8 @@ function ApplicantProfile() {
                       </div>
                     </div>
                   </div>
+
+                  {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
 
                   {saveError && (
                     <p className="text-sm text-red-500">{saveError}</p>
@@ -438,12 +533,15 @@ function ApplicantProfile() {
               ) : (
                 <div className="space-y-6">
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
-                      About
-                    </p>
-                    <p className="mt-3 text-base leading-7 text-slate-700">
-                      {profile.summary || "No summary added yet"}
-                    </p>
+                  <label className="block text-sm font-medium text-slate-700">
+                    About
+                    <textarea
+                       value={draft.about}
+                       rows={4}
+                       onChange={(event) => handleInputChange("about", event.target.value)}
+                       className="mt-1.5 w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                     />
+                  </label>
                   </div>
 
                   <div>
@@ -451,13 +549,7 @@ function ApplicantProfile() {
                       Experience
                     </p>
                     <div className="mt-3 rounded-2xl border border-blue-100 bg-[#f8fbff] p-4">
-                      {/* <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-900">Senior Product Designer</h3>
-                          <p className="text-sm text-slate-600">Northstar Labs • 2021 - Present</p>
-                        </div>
-                        <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">{profile.experience}</span>
-                      </div> */}
+
                       <div className="flex items-center justify-between">
                         <p className="text-base font-semibold text-slate-900">
                           {Number(profile.experience) > 0
@@ -494,18 +586,18 @@ function ApplicantProfile() {
                     <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-[#f8fbff] p-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         <p className="break-all text-base font-semibold text-slate-900">
-                          {profile.resume || "No resume uploaded"}
+                          {getResumeLabel(profile.resume)}
                         </p>
-                        {(resumePreviewUrl || isResumeUrl(profile.resume)) && (
-                          <a
-                            href={resumePreviewUrl || profile.resume}
-                            target="_blank"
-                            rel="noreferrer"
+                        {profile.resume && (
+                          <button
+                           type="button"
+                           onClick={handleViewResume}
                             className="mt-2 inline-flex text-sm font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
                           >
                             View resume
-                          </a>
+                          </button>
                         )}
+                        {uploadError && <p className="mt-2 text-sm text-red-500">{uploadError}</p>}
                       </div>
                       <div className="flex w-full gap-2 sm:w-auto">
                         <button
@@ -513,7 +605,7 @@ function ApplicantProfile() {
                           onClick={() => fileInputRef.current?.click()}
                           className="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:w-auto"
                         >
-                          Upload resume
+                        {uploading ? "Uploading..." : profile.resume ? "Replace resume" : "Upload resume"}
                         </button>
                         <input
                           ref={fileInputRef}
