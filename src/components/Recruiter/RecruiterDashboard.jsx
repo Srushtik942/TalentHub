@@ -22,6 +22,10 @@ function getApplicationId(application) {
   return application.id ?? application._id ?? application.email;
 }
 
+function getApplicationStatus(application) {
+  return application.status || (application.shortlisted ? "shortlisted" : "new");
+}
+
 function getJobId(job) {
   return job.id ?? job._id;
 }
@@ -50,16 +54,11 @@ function RecruiterDashboard() {
   console.log(activeJobTitle);
   const archivedJobs = myJobs.filter((job) => job.archived);
 
-  const applicationCount = myJobs.reduce(
-    (total, job) => total + (job.applications?.length ?? 0),
-    0,
-  );
-
   const totalApplications = recentApplications.length;
 
   const shortlistedCount = recentApplications.filter(
-  (app) => app.status === "shortlisted"
-).length;
+    (application) => getApplicationStatus(application) === "shortlisted",
+  ).length;
 
 
 
@@ -146,32 +145,6 @@ function RecruiterDashboard() {
         err instanceof Error ? err.message : "Could not delete the job post.",
       );
     }
-  }
-
-  function toggleShortlist(jobId, applicationId) {
-    updateJobs(
-      jobs.map((job) =>
-        getJobId(job) !== jobId
-          ? job
-          : {
-              ...job,
-              applications: (job.applications ?? []).map((application) =>
-                getApplicationId(application) !== applicationId
-                  ? application
-                  : { ...application, shortlisted: !application.shortlisted },
-              ),
-            },
-      ),
-    );
-    setRecentApplications((applications) =>
-      applications.map((application) =>
-        getApplicationId(application) !== applicationId ||
-        String(application.jobId ?? application.job?._id ?? application.job?.id) !==
-          String(jobId)
-          ? application
-          : { ...application, shortlisted: !application.shortlisted },
-      ),
-    );
   }
 
   useEffect(() => {
@@ -297,8 +270,7 @@ function RecruiterDashboard() {
             <div className="h-3 w-5/6 rounded bg-slate-100" />
           </div>
           <p className="text-sm text-slate-600">
-            AI shortlist preview. Application shortlisting will be available
-            when the AI API is integrated; no applications have been changed.
+            AI shortlist preview only; it does not change application statuses.
           </p>
         </div>
       )}
@@ -328,7 +300,6 @@ function RecruiterDashboard() {
                   selectedJobId === getJobId(job) ? "" : getJobId(job),
                 )
               }
-              onToggleShortlist={toggleShortlist}
             />
           ))}
         </div>
@@ -371,60 +342,111 @@ function RecentApplications({
           No applications for the jobpost.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left text-sm">
-            <thead className="border-y border-slate-100 text-xs text-slate-500">
-              <tr>
-                <th className="px-3 py-3 font-semibold">Applicant</th>
-                <th className="px-3 py-3 font-semibold">Job title</th>
-                <th className="px-3 py-3 font-semibold">Applied on</th>
-                <th className="px-3 py-3 font-semibold">Experience</th>
-                <th className="px-3 py-3 font-semibold">Status</th>
-                <th className="px-3 py-3 font-semibold">Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map((application) => (
-                <tr
-                  className="border-b border-slate-100 last:border-0"
-                  key={`${application.jobId}-${getApplicationId(application)}`}
-                >
-                  <td className="px-3 py-3">
-                    <p className="font-semibold">
+        <>
+          <div className="space-y-3 lg:hidden">
+            {applications.map((application) => (
+              <article
+                className="min-w-0 rounded-lg border border-slate-200 p-4"
+                key={`${application.jobId}-${getApplicationId(application)}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words font-semibold">
                       {application?.applicant?.fullName || "Candidate"}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="break-all text-xs text-slate-500">
                       {application.email}
                     </p>
-                  </td>
-                  <td className="px-3 py-3">{application?.job?.title}</td>
-                  <td className="px-3 py-3">
-                    {application.appliedAt
-                      ? new Date(application.appliedAt).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-3">
-                    {application?.applicant?.experience || "—"}
-                  </td>
-                  <td className="px-3 py-3">
-                    {application.shortlisted
-                      ? "Shortlisted"
-                      : application.status || "New"}
-                  </td>
-                  <td className="px-3 py-3">
-                    <button
-                      className={secondaryButtonClass}
-                      type="button"
-                      onClick={() => onViewDetails(application)}
-                    >
-                      View details
-                    </button>
-                  </td>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize text-slate-700">
+                    {getApplicationStatus(application)}
+                  </span>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div className="min-w-0">
+                    <dt className="text-xs text-slate-500">Job title</dt>
+                    <dd className="break-words font-medium">
+                      {application?.job?.title || "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Applied on</dt>
+                    <dd>
+                      {application.appliedAt
+                        ? new Date(application.appliedAt).toLocaleDateString()
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-xs text-slate-500">Experience</dt>
+                    <dd>{application?.applicant?.experience || "—"}</dd>
+                  </div>
+                </dl>
+                <button
+                  className={`${secondaryButtonClass} mt-3 w-full`}
+                  type="button"
+                  onClick={() => onViewDetails(application)}
+                >
+                  View details
+                </button>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto lg:block">
+            <table className="w-full min-w-[1020px] text-left text-sm">
+              <thead className="border-y border-slate-100 text-xs text-slate-500">
+                <tr>
+                  <th className="px-3 py-3 font-semibold">Applicant</th>
+                  <th className="px-3 py-3 font-semibold">Job title</th>
+                  <th className="px-3 py-3 font-semibold">Applied on</th>
+                  <th className="px-3 py-3 font-semibold">Experience</th>
+                  <th className="px-3 py-3 font-semibold">Status</th>
+                  <th className="px-3 py-3 font-semibold">Details</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {applications.map((application) => (
+                  <tr
+                    className="border-b border-slate-100 last:border-0"
+                    key={`${application.jobId}-${getApplicationId(application)}`}
+                  >
+                    <td className="px-3 py-3">
+                      <p className="font-semibold">
+                        {application?.applicant?.fullName || "Candidate"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {application.email}
+                      </p>
+                    </td>
+                    <td className="px-3 py-3">{application?.job?.title}</td>
+                    <td className="px-3 py-3">
+                      {application.appliedAt
+                        ? new Date(application.appliedAt).toLocaleDateString()
+                        : "—"}
+                    </td>
+                    <td className="px-3 py-3">
+                      {application?.applicant?.experience || "—"}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="capitalize">
+                        {getApplicationStatus(application)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <button
+                        className={secondaryButtonClass}
+                        type="button"
+                        onClick={() => onViewDetails(application)}
+                      >
+                        View details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </section>
   );
@@ -490,8 +512,7 @@ function JobPost({
   onArchive,
   onDelete,
   onToggleApplications,
-  onToggleShortlist,
-  applicationCount
+  applicationCount,
 }) {
   const applications = job.applications ?? [];
   console.log("applications",applications);
@@ -573,31 +594,15 @@ function JobPost({
             <div className="space-y-2">
               {applications.map((application) => (
                 <div
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
+                  className="flex min-w-0 flex-col gap-3 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between"
                   key={getApplicationId(application)}
                 >
-                  <div>
-                    <p className="font-semibold">{application.fullName}</p>
-                    <p className="text-sm text-slate-600">
+                  <div className="min-w-0">
+                    <p className="break-words font-semibold">{application.fullName}</p>
+                    <p className="break-all text-sm text-slate-600">
                       {application.email}
                     </p>
                   </div>
-                  <button
-                    className={
-                      application.shortlisted
-                        ? primaryButtonClass
-                        : secondaryButtonClass
-                    }
-                    type="button"
-                    onClick={() =>
-                      onToggleShortlist(
-                        getJobId(job),
-                        getApplicationId(application),
-                      )
-                    }
-                  >
-                    {application.shortlisted ? "Shortlisted" : "Shortlist"}
-                  </button>
                 </div>
               ))}
             </div>

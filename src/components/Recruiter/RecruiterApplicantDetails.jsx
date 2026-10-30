@@ -4,8 +4,28 @@ import { MapPin } from "lucide-react";
 import RecruiterShell from "./RecruiterShell";
 import { primaryButtonClass, secondaryButtonClass } from "./recruiterStyles";
 
+const applicationStatuses = [
+  { value: "new", label: "New application" },
+  { value: "shortlisted", label: "Shortlisted" },
+  { value: "interview", label: "Interview" },
+  { value: "hired", label: "Hired" },
+  { value: "rejected", label: "Rejected" },
+];
+
 function getApplicationId(application) {
   return application.id ?? application._id ?? application.email;
+}
+
+function getApplicationStatus(application) {
+  return application?.shortlisted
+    ? "shortlisted"
+    : application?.status || "new";
+}
+
+function formatStatus(status) {
+  return status
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function getApplicant(application) {
@@ -32,6 +52,7 @@ function RecruiterApplicantDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("new");
   const [resumeError, setResumeError] = useState("");
 
 
@@ -70,6 +91,7 @@ function RecruiterApplicantDetails() {
         }
 
         setApplication(matchedApplication);
+        setSelectedStatus(getApplicationStatus(matchedApplication));
       } catch (fetchError) {
         if (fetchError.name === "AbortError") return;
         setError(
@@ -86,33 +108,41 @@ function RecruiterApplicantDetails() {
     return () => controller.abort();
   }, [applicationId]);
 
-  async function shortListAplication(){
+  async function updateApplicationStatus() {
+    if (!application || updating) return;
 
-    if(!application || updating) return;
-
-    const token = localStorage.getItem('token');
+    const status = selectedStatus;
+    const token = localStorage.getItem("token");
     setUpdating(true);
     try{
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/api/recruiter/applications/status/${applicationId}`,
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_API}/api/recruiter/applications/status/${encodeURIComponent(applicationId)}`,
       {
         method:"PUT",
         headers:{
           "Content-Type":"application/json",
             Authorization:  `Bearer ${token}` ,
         },
-        body:JSON.stringify({status:"shortlisted"}),
+        body: JSON.stringify({ status }),
       }
       );
 
       const data = await response.json().catch(()=> ({}));
 
       if(!response.ok){
-        throw new Error(data?.message || "Faied to shortlist the applicant");
+        throw new Error(data?.message || "Failed to update the application status.");
       }
-      setApplication((current)=>({...current, status:"shortlisted"}));
+      setApplication((current) => ({
+        ...current,
+        status,
+        shortlisted: status === "shortlisted",
+      }));
       setError("");
     }catch(err){
-      setError(err instanceof Error ? err.message : "Could not shortlist the applicant.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not update the application status.",
+      );
     }finally{
       setUpdating(false);
     }
@@ -161,9 +191,11 @@ function RecruiterApplicantDetails() {
       ? applicant.skills.split(",").map((skill) => skill.trim()).filter(Boolean)
       : [];
   const resume = applicant.resume ?? application?.resume ?? "";
-  const applicationStatus = application?.shortlisted
-    ? "Shortlisted"
-    : application?.status || "New";
+  const applicationStatus = getApplicationStatus(application);
+  const hasSelectedStatusChanged = selectedStatus !== applicationStatus;
+  const hasCurrentStatusOption = applicationStatuses.some(
+    ({ value }) => value === applicationStatus,
+  );
 
   return (
     <RecruiterShell
@@ -193,20 +225,6 @@ function RecruiterApplicantDetails() {
                   {applicant.location || "Location not provided"}
                 </p>
               </div>
-              <button
-                className={
-                  application.shortlisted
-                    ? primaryButtonClass
-                    : secondaryButtonClass
-                }
-                type="button"
-                onClick={shortListAplication}
-                disabled={updating || application.status === "shortlisted"}
-              >
-                {application.status === "shortlisted" ? "Shortlisted"  : updating
-      ? "Shortlisting…"
-      : "Shortlist"}
-              </button>
             </div>
 
             {error && (
@@ -214,6 +232,54 @@ function RecruiterApplicantDetails() {
                 {error}
               </p>
             )}
+
+            <section
+              className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5"
+              aria-labelledby="application-status-heading"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+
+                    <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800">
+                      Current: {formatStatus(applicationStatus)}
+                    </span>
+                  </div>
+                  <label
+                    className="block text-sm font-medium text-slate-600"
+                    htmlFor="application-status"
+                  >
+                    Update candidate status
+                  </label>
+                  <select
+                    className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 sm:max-w-sm"
+                    id="application-status"
+                    value={selectedStatus}
+                    onChange={(event) => setSelectedStatus(event.target.value)}
+                    disabled={updating}
+                  >
+                    {!hasCurrentStatusOption && (
+                      <option value={applicationStatus}>
+                        {formatStatus(applicationStatus)}
+                      </option>
+                    )}
+                    {applicationStatuses.map(({ value, label }) => (
+                      <option value={value} key={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  className={`${primaryButtonClass} w-full sm:w-auto`}
+                  type="button"
+                  onClick={updateApplicationStatus}
+                  disabled={updating || !hasSelectedStatusChanged}
+                >
+                  {updating ? "Saving status…" : "Update status"}
+                </button>
+              </div>
+            </section>
 
             <div className="mt-6 grid min-w-0 gap-5 sm:grid-cols-2">
               <ApplicantField
@@ -242,7 +308,10 @@ function RecruiterApplicantDetails() {
                 label="Skills"
                 value={skills.join(", ")}
               />
-              <ApplicantField label="Status" value={applicationStatus} />
+              <ApplicantField
+                label="Status"
+                value={formatStatus(applicationStatus)}
+              />
               <div className="min-w-0 sm:col-span-2">
                 <p className="text-sm font-semibold text-slate-600">Resume</p>
                 <div className="mt-2">
