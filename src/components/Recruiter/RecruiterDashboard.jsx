@@ -10,12 +10,9 @@ import {
   Trash2,
   UsersRound,
 } from "lucide-react";
-import {
-  getRecruiterJobs,
-  saveRecruiterJobs,
-} from "../../utils/recruiterStorage";
 import RecruiterShell from "./RecruiterShell";
 import SummaryCard from "./SummaryCard";
+import AiAssistantShimmer from "./AiAssistantShimmer";
 import { primaryButtonClass, secondaryButtonClass } from "./recruiterStyles";
 
 function getApplicationId(application) {
@@ -38,21 +35,25 @@ function getApplicationCount(applications, job){
 
 function RecruiterDashboard() {
   const navigate = useNavigate();
-  const [jobs, setJobs] = useState(getRecruiterJobs);
+  const [jobs, setJobs] = useState([]);
   const [recentApplications, setRecentApplications] = useState([]);
-  const [loadingRecentApplications, setLoadingRecentApplications] =
-    useState(true);
+  const [loadingRecentApplications, setLoadingRecentApplications] = useState(true);
   const [recentApplicationsError, setRecentApplicationsError] = useState("");
   const [selectedJobId, setSelectedJobId] = useState("");
   const [error, setError] = useState("");
-  const [showAiPreview, setShowAiPreview] = useState(false);
-  const useId = getLoggedInUserId();
-  const myJobs = jobs.filter((job) => job.postedBy === useId);
-  const activeJobs = myJobs.filter((job) => !job.archived);
+  const recruiterId = getLoggedInUserId();
+
+  console.log(recruiterId)
+  const jobsByNewest = [...jobs].sort(
+    (first, second) =>
+      new Date(second.createdAt) - new Date(first.createdAt),
+  );
+  const activeJobs = jobsByNewest.filter((job) => !job.archived);
   console.log("activeJobs",activeJobs);
   const activeJobTitle = activeJobs.map((app)=> app?.title);
   console.log(activeJobTitle);
-  const archivedJobs = myJobs.filter((job) => job.archived);
+  const archivedJobs = jobsByNewest.filter((job) => job.archived);
+
 
   const totalApplications = recentApplications.length;
 
@@ -64,14 +65,7 @@ function RecruiterDashboard() {
 
   function updateJobs(nextJobs) {
     setJobs(nextJobs);
-    try {
-      saveRecruiterJobs(nextJobs);
-      setError("");
-    } catch {
-      setError(
-        "Could not save the job update in this browser. Check available storage and try again.",
-      );
-    }
+    setError("");
   }
 
   async function setJobArchived(jobId, isArchived) {
@@ -150,6 +144,42 @@ function RecruiterDashboard() {
   useEffect(() => {
     const controller = new AbortController();
 
+    async function loadJobs() {
+      try {
+        if (!recruiterId) {
+          throw new Error("Could not identify the recruiter.");
+        }
+
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_API}/api/recruiter/jobs/${recruiterId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+
+          },
+        );
+        console.log("response",response);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch job posts.");
+        }
+
+        const data = await response.json();
+        console.log("data",data.jobPosts);
+        if (!Array.isArray(data?.jobPosts)) {
+          throw new Error("The job posts response was invalid.");
+        }
+
+        setJobs(data.jobPosts);
+        setError("");
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        setError(
+          error instanceof Error ? error.message : "Could not load job posts.",
+        );
+      }
+    }
+
     const getRecentApplications = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -200,9 +230,10 @@ function RecruiterDashboard() {
       }
     };
 
+    loadJobs();
     getRecentApplications();
     return () => controller.abort();
-  }, []);
+  }, [recruiterId]);
 
   return (
     <RecruiterShell
@@ -243,37 +274,7 @@ function RecruiterDashboard() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Your job posts</h2>
-        <button
-          className={secondaryButtonClass}
-          type="button"
-          onClick={() => setShowAiPreview((shown) => !shown)}
-          aria-expanded={showAiPreview}
-        >
-          <Sparkles className="h-4 w-4" />
-          AI-Hiring Assistant
-        </button>
-      </div>
-      {showAiPreview && (
-        <div
-          className="mb-4 flex flex-col gap-4 rounded-xl border border-blue-100 bg-white p-4 sm:flex-row sm:items-center"
-          role="status"
-          aria-live="polite"
-        >
-          <div
-            className="grid w-full animate-pulse gap-2 sm:max-w-48"
-            aria-hidden="true"
-          >
-            <div className="h-3 w-3/4 rounded bg-blue-100" />
-            <div className="h-3 w-full rounded bg-slate-100" />
-            <div className="h-3 w-5/6 rounded bg-slate-100" />
-          </div>
-          <p className="text-sm text-slate-600">
-            AI shortlist preview only; it does not change application statuses.
-          </p>
-        </div>
-      )}
+      <h2 className="mb-4 text-lg font-bold">Your job posts</h2>
       {error && (
         <p
           className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
@@ -516,6 +517,40 @@ function JobPost({
 }) {
   const applications = job.applications ?? [];
   console.log("applications",applications);
+
+  const [showAiPreview, setShowAiPreview] = useState(false);
+const [aiLoading, setAiLoading] = useState(false);
+const [aiError, setAiError] = useState("");
+const [aiResult, setAiResult] = useState(null);
+
+async function loadAiAssistant() {
+  setAiLoading(true);
+  setAiError("");
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch(
+      `${import.meta.env.VITE_BACKEND_API}/api/recruiter/ai-assistant/${getJobId(job)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const data = await response.json().catch(() => ({}));
+    console.log("ai data", data);
+    if (!response.ok) {
+      throw new Error(data?.message || "Failed to get AI recommendations.");
+    }
+    setAiResult(data);
+  } catch (err) {
+    setAiError(err instanceof Error ? err.message : "Could not load AI recommendations.");
+  } finally {
+    setAiLoading(false);
+  }
+}
+
+function handleAiToggle() {
+  const willShow = !showAiPreview;
+  setShowAiPreview(willShow);
+  if (willShow && !aiResult && !aiLoading) loadAiAssistant();
+}
+
   const topCandidate = [...applications]
     .filter((application) => Number.isFinite(Number(application.matchScore)))
     .sort(
@@ -554,6 +589,17 @@ function JobPost({
           <button
             className={secondaryButtonClass}
             type="button"
+            onClick={handleAiToggle}
+            aria-expanded={showAiPreview}
+
+
+          >
+            <Sparkles className="h-4 w-4" />
+            AI-Hiring Assistant
+          </button>
+          <button
+            className={secondaryButtonClass}
+            type="button"
             onClick={onArchive}
           >
             <Archive className="h-4 w-4" />
@@ -570,6 +616,34 @@ function JobPost({
           </button>
         </div>
       </div>
+      {showAiPreview && (
+        <div
+          className="mt-4 rounded-xl border border-blue-100 bg-white p-4"
+          role="status"
+          aria-live="polite"
+          aria-busy={aiLoading}
+        >
+          {aiLoading ? (
+            <AiAssistantShimmer />
+          ) : aiError ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-red-700">{aiError}</p>
+              <button
+                className={secondaryButtonClass}
+                type="button"
+                onClick={loadAiAssistant}
+              >
+                Retry
+              </button>
+            </div>
+          ) : aiResult ? (
+            <AiAssistantResult result={aiResult} />
+          ) : null}
+          <p className="mt-3 text-xs text-slate-500">
+            AI-Hiring Assistant shortlist preview only, it does not change application statuses.
+          </p>
+        </div>
+      )}
       {selected && (
         <div className="mt-5 border-t border-slate-200 pt-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -610,6 +684,40 @@ function JobPost({
         </div>
       )}
     </article>
+  );
+}
+
+function AiAssistantResult({ result }) {
+  const candidates = result.shortlist ?? result.candidates ?? result.recommendations ?? [];
+
+  return (
+    <div className="space-y-3">
+      {result.summary && <p className="text-sm text-slate-700">{result.summary}</p>}
+      {candidates.length === 0 ? (
+        <p className="text-sm text-slate-600">No recommendations available for this job yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {candidates.map((c, i) => (
+            <li key={c.applicationId ?? c.id ?? c._id ?? i} className="rounded-lg border border-slate-200 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="break-words font-semibold">{c.fullName ?? c.name ?? "Candidate"}</p>
+                  {c.email && <p className="break-all text-xs text-slate-500">{c.email}</p>}
+                </div>
+                {c.matchScore != null && (
+                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">
+                    {c.matchScore}% match
+                  </span>
+                )}
+              </div>
+              {(c.reason ?? c.summary) && (
+                <p className="mt-2 text-sm text-slate-600">{c.reason ?? c.summary}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
