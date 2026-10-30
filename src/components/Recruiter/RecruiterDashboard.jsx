@@ -54,11 +54,14 @@ function RecruiterDashboard() {
     (total, job) => total + (job.applications?.length ?? 0),
     0,
   );
-  const shortlistedCount = myJobs.reduce(
-    (total, job) =>
-      total + (job.applications ?? []).filter((a) => a.shortlisted).length,
-    0,
-  );
+
+  const totalApplications = recentApplications.length;
+
+  const shortlistedCount = recentApplications.filter(
+  (app) => app.status === "shortlisted"
+).length;
+
+
 
   function updateJobs(nextJobs) {
     setJobs(nextJobs);
@@ -203,6 +206,9 @@ function RecruiterDashboard() {
         const jobTitle = applications.map((jobTitle)=> jobTitle?.job?.title);
         console.log("jobTitle",jobTitle);
 
+        const shortlistedCount = applications.filter((job)=> job.status === "shortlisted")
+        console.log(shortlistedCount)
+
         if (!Array.isArray(applications)) {
           throw new Error("The recent applications response was invalid.");
         }
@@ -219,7 +225,7 @@ function RecruiterDashboard() {
       } finally {
         if (!controller.signal.aborted) setLoadingRecentApplications(false);
       }
-    }; // closes getRecentApplications
+    };
 
     getRecentApplications();
     return () => controller.abort();
@@ -239,7 +245,7 @@ function RecruiterDashboard() {
         <SummaryCard
           icon={UsersRound}
           label="Applications"
-          value={applicationCount}
+          value={totalApplications}
         />
         <SummaryCard
           icon={UsersRound}
