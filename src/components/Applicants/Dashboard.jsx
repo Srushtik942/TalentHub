@@ -7,6 +7,16 @@ import {
   getAppliedJobIds,
   updateAppliedJobStatus,
 } from "../../utils/appliedJobs";
+import { getLoggedInUserId } from "../../utils/auth";
+import SummaryCard from "../Recruiter/SummaryCard";
+import {
+  BadgeCheck,
+  BriefcaseBusiness,
+  CalendarCheck2,
+  CheckCheck,
+  CircleX,
+} from "lucide-react";
+import NotificationBell from "./Notification";
 
 function Icon({ name, className = "h-4 w-4", filled = false }) {
   const common = {
@@ -132,10 +142,37 @@ const Dashboard = () => {
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [jobs, setJobs] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [applicationStatusError, setApplicationStatusError] = useState("");
   const [appliedJobIds, setAppliedJobIds] = useState(getAppliedJobIds);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const { isSaved, toggleSaved, setSavedIds } = useSavedJobs();
   const userData = useSelector((state) => state.user.userData);
+  const applicantId = getLoggedInUserId();
+
+  const getApplicationStatus = (job) => {
+    const status =
+      job?.application?.status ?? job?.applicationStatus ?? job?.status ?? "";
+
+    return typeof status === "string" ? status.toLowerCase() : "";
+  };
+
+  const appliedJobsCount = applications.length;
+  const shortlistedCount = applications.filter(
+    (application) => getApplicationStatus(application) === "shortlisted",
+  ).length;
+
+  console.log("appliedJobCount",shortlistedCount);
+  const rejectedCount = applications.filter(
+    (application) => getApplicationStatus(application) === "rejected",
+  ).length;
+  const interviewCount = applications.filter(
+    (application) => getApplicationStatus(application) === "interview",
+  ).length;
+  const hiredCount = applications.filter(
+    (application) => getApplicationStatus(application) === "hired",
+  ).length;
+
   console.log("userData from redux:", userData);
 
   const locations = [
@@ -223,6 +260,47 @@ const Dashboard = () => {
 
     fetchJobs();
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchApplicationStatuses() {
+      try {
+        if (!applicantId) {
+          throw new Error("Could not identify the applicant.");
+        }
+
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_API}/api/applicant/applications/status/${encodeURIComponent(applicantId)}`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          },
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch application statuses.");
+        }
+
+        const data = await response.json();
+        if (!Array.isArray(data?.applications)) {
+          throw new Error("The application statuses response was invalid.");
+        }
+
+        setApplications(data.applications);
+        setApplicationStatusError("");
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        setApplicationStatusError(
+          error instanceof Error
+            ? error.message
+            : "Could not load application statuses.",
+        );
+      }
+    }
+
+    fetchApplicationStatuses();
+    return () => controller.abort();
+  }, [applicantId]);
 
   let filteredJobs = jobs.filter((job) => {
     const query = search.trim().toLowerCase();
@@ -385,14 +463,11 @@ const Dashboard = () => {
           </label>
 
           <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
-            <button
-              className="relative grid h-9 w-9 place-items-center rounded-lg text-slate-600 hover:bg-slate-100"
-              type="button"
-              aria-label="Notifications"
-            >
-              <Icon name="bell" className="h-[18px] w-[18px]" />
-              <span className="absolute right-2 top-1.5 h-1.5 w-1.5 rounded-full bg-blue-600" />
-            </button>
+            <NotificationBell
+              applications={applications}
+              userId={applicantId ?? "current"}
+              BellIcon={<Icon name="bell" className="h-[18px] w-[18px]" />}
+            />
             <button
               className="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-slate-100 "
               type="button"
@@ -558,6 +633,42 @@ const Dashboard = () => {
           className="min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8 lg:py-7"
           aria-label="Available jobs"
         >
+          {applicationStatusError && (
+            <p
+              className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              role="alert"
+            >
+              {applicationStatusError}
+            </p>
+          )}
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <SummaryCard
+              icon={BriefcaseBusiness}
+              label="Applied jobs"
+              value={appliedJobsCount}
+            />
+            <SummaryCard
+              icon={CheckCheck}
+              label="Shortlisted"
+              value={shortlistedCount}
+            />
+            <SummaryCard
+              icon={CircleX}
+              label="Rejected"
+              value={rejectedCount}
+            />
+            <SummaryCard
+              icon={CalendarCheck2}
+              label="Interviews"
+              value={interviewCount}
+            />
+            <SummaryCard
+              icon={BadgeCheck}
+              label="Hired"
+              value={hiredCount}
+            />
+          </div>
+
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
