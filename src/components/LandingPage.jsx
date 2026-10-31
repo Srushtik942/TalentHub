@@ -21,7 +21,7 @@ const LandingPage = () => {
         >
           <Link
             className="hidden text-sm font-semibold text-slate-700 transition hover:text-[#2878c7] sm:inline"
-            to="/dashboard"
+            to="/register"
           >
             Browse jobs
           </Link>
@@ -58,7 +58,7 @@ const LandingPage = () => {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               className="inline-flex min-h-12 items-center gap-3 rounded-md bg-[#2878c7] px-5 text-sm font-semibold text-white transition hover:bg-[#1f65a8]"
-              to="/dashboard"
+              to="/login"
             >
               Explore all jobs <span aria-hidden="true">↗</span>
             </Link>
@@ -113,7 +113,7 @@ const LandingPage = () => {
           </div>
           <Link
             className="inline-flex w-fit items-center gap-2 py-2 text-sm font-bold text-[#2878c7] hover:text-[#1f65a8]"
-            to="/dashboard"
+            to="/login"
           >
             See open positions <span aria-hidden="true">→</span>
           </Link>

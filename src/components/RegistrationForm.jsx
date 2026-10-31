@@ -198,16 +198,6 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                   />
                 </label>
               </div>
-              <label className="block text-xs font-semibold text-slate-700">
-                Upload Resume{" "}
-                <span className="font-normal text-slate-400">(Optional)</span>
-                <input
-                  className="mt-2 block w-full rounded-lg border border-dashed border-slate-300 px-3 py-3 text-sm font-normal text-slate-500 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-blue-600"
-                  type="file"
-                  data-testid="resume"
-                  accept=".pdf,.doc,.docx"
-                />
-              </label>
             </>
           ) : (
             <>
