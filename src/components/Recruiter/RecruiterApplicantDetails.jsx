@@ -163,7 +163,7 @@ function RecruiterApplicantDetails() {
       if (!/^(https?:\/\/|\/)/i.test(resume)) {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_API}/api/applicant/resume/download-url?key=${encodeURIComponent(resume)}`,
+          `${import.meta.env.VITE_BACKEND_API}/api/recruiter/resume/download-url?key=${encodeURIComponent(resume)}`,
           { headers: { Authorization: "Bearer " + token } },
         );
         const data = await response.json();

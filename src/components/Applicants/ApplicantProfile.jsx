@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Phone } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "../../redux/userSlice";
+import ApplicantProfileShimmer from "./ApplicantProfileShimmer";
 
 const normalizeProfile = (u) => ({
   name: u.fullName || "",
@@ -149,6 +150,7 @@ function ApplicantProfile() {
           body: JSON.stringify({
             fullName: draft.name,
             email: draft.email,
+            about: draft.about,
             experience: Number(draft.experience),
             location: draft.location,
             skills: draft.skills,
@@ -182,11 +184,7 @@ function ApplicantProfile() {
   };
 
   if (loading) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-[#edf4ff]">
-        <p className="text-slate-600">Loading profile…</p>
-      </main>
-    );
+    return <ApplicantProfileShimmer />;
   }
 
   if (error || !profile) {
@@ -442,12 +440,12 @@ const token = localStorage.getItem("token");
                   </label>
 
                   <label className="block text-sm font-medium text-slate-700">
-                    Summary
+                    About
                     <textarea
-                      value={draft.summary}
+                      value={draft.about}
                       rows={4}
                       onChange={(event) =>
-                        handleInputChange("summary", event.target.value)
+                        handleInputChange("about", event.target.value)
                       }
                       className="mt-1.5 w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
@@ -533,15 +531,12 @@ const token = localStorage.getItem("token");
               ) : (
                 <div className="space-y-6">
                   <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    About
-                    <textarea
-                       value={draft.about}
-                       rows={4}
-                       onChange={(event) => handleInputChange("about", event.target.value)}
-                       className="mt-1.5 w-full rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                     />
-                  </label>
+                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">
+                      About
+                    </p>
+                    <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
+                      {profile.about}
+                    </p>
                   </div>
 
                   <div>
@@ -598,22 +593,6 @@ const token = localStorage.getItem("token");
                           </button>
                         )}
                         {uploadError && <p className="mt-2 text-sm text-red-500">{uploadError}</p>}
-                      </div>
-                      <div className="flex w-full gap-2 sm:w-auto">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 sm:w-auto"
-                        >
-                        {uploading ? "Uploading..." : profile.resume ? "Replace resume" : "Upload resume"}
-                        </button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={handleResumeUpload}
-                          className="hidden"
-                        />
                       </div>
                     </div>
                   </div>
