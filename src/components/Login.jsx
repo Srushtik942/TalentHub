@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import Naukri from "../assets/Naukri.png";
 const Login = ({ onRegister }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -89,7 +90,7 @@ const Login = ({ onRegister }) => {
             Password
             <span className="relative mt-2 block">
               <input
-                className="w-full rounded-lg border border-slate-200 px-3.5 py-3 pr-16 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                className="w-full rounded-lg border border-slate-200 px-3.5 py-3 pr-12 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 name="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
@@ -99,12 +100,17 @@ const Login = ({ onRegister }) => {
                 onChange={(event) => setPassword(event.target.value)}
               />
               <button
-                className="absolute inset-y-0 right-3 text-xs font-semibold text-slate-500 hover:text-blue-600"
+                className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-blue-600"
                 type="button"
                 onClick={() => setShowPassword((visible) => !visible)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
               >
-                {showPassword ? "Hide" : "Show"}
+                {showPassword ? (
+                  <EyeOff size={18} aria-hidden="true" />
+                ) : (
+                  <Eye size={18} aria-hidden="true" />
+                )}
               </button>
             </span>
           </label>

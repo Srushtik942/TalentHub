@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import RoleSelector from "./RoleSelector";
 import { setUser } from "../redux/userSlice";
 
 const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -106,7 +109,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
 
         <form className="mt-6 space-y-4" onSubmit={clickOnSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-xs font-semibold text-slate-700 data-testid=name-field">
+            <label className="block text-xs font-semibold text-slate-700">
               Full Name
               <input
                 className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -133,25 +136,59 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-xs font-semibold text-slate-700">
               Password
-              <input
-                className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                name="password"
-                type="password"
-                data-testid="password-field"
-                placeholder="Create a password"
-                required
-              />
+              <span className="relative mt-2 block">
+                <input
+                  className="w-full rounded-lg border border-slate-200 px-3.5 py-3 pr-12 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  data-testid="password-field"
+                  placeholder="Create a password"
+                  required
+                />
+                <button
+                  className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-blue-600"
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} aria-hidden="true" />
+                  ) : (
+                    <Eye size={18} aria-hidden="true" />
+                  )}
+                </button>
+              </span>
             </label>
             <label className="text-xs font-semibold text-slate-700">
               Confirm Password
-              <input
-                className="mt-2 w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                name="confirmPassword"
-                type="password"
-                data-testid="confirm-password"
-                placeholder="Confirm your password"
-                required
-              />
+              <span className="relative mt-2 block">
+                <input
+                  className="w-full rounded-lg border border-slate-200 px-3.5 py-3 pr-12 text-sm font-normal outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  data-testid="confirm-password"
+                  placeholder="Confirm your password"
+                  required
+                />
+                <button
+                  className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-blue-600"
+                  type="button"
+                  onClick={() => setShowConfirmPassword((visible) => !visible)}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
+                  aria-pressed={showConfirmPassword}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={18} aria-hidden="true" />
+                  ) : (
+                    <Eye size={18} aria-hidden="true" />
+                  )}
+                </button>
+              </span>
             </label>
           </div>
 
