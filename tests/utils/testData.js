@@ -11,3 +11,16 @@ export function getApplicantData(overrides = {}) {
     ...overrides,
   };
 }
+
+export function getRecruiterData(overrides = {}) {
+  return{
+    fullName: "Test-Recruiter",
+    email:`test.recruiter.${Date.now()}@example.com`,
+    password: "Test@12345",
+    confirmPassword: "Test@12345",
+    companyName: `Test Company ${Date.now()}`,
+    companySize: "11-50 employees",
+    companyLocation: "New York, USA",
+    ...overrides,
+  }
+}

@@ -1,6 +1,6 @@
 import {test, expect} from '@playwright/test';
-import { getApplicantData } from './utils/testData';
-import { fillApplicantForm, submitSignup } from './utils/signupHelpers';
+import { getApplicantData , getRecruiterData} from './utils/testData';
+import { fillApplicantForm, submitSignup, fillRecruiterForm } from './utils/signupHelpers';
 
 
 test('Home page loads',async({page})=>{
@@ -55,3 +55,29 @@ test('Applicant can register', async ({ page }) => {
     console.log('Register API :', response.status(), await response.text());
     expect(response.status()).toBe(201);
 });
+
+
+test('Recuiter can register',async({page})=>{
+     await page.goto('http://localhost:5173/');
+    await page.getByTestId('hiring-btn').click();
+    await expect(page).toHaveURL(/register/);
+
+    await page.getByRole('radio', { name: /recruiter/i }).check({ force: true });
+    await expect(page.getByRole('region', { name: 'Recruiter signup form' })).toBeVisible();
+
+
+    await fillRecruiterForm(page, getRecruiterData());
+
+    const [response] = await Promise.all([
+        page.waitForResponse(
+            (res)=>
+                res.url().includes('/api/auth/register') &&
+            res.request().method() === 'POST',
+            {timeout:60000}
+        ),
+        submitSignup(page),
+    ])
+    console.log('Register API :', response.status(), await response.text());
+    expect(response.status()).toBe(201);
+
+})

@@ -208,6 +208,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                   name="companyName"
                   type="text"
                   placeholder="Enter your company name"
+                  data-testid="company-name"
                   required
                 />
               </label>
@@ -218,6 +219,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                     name="companySize"
                     className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-sm font-normal text-slate-500 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     defaultValue=""
+                    data-testid="company-size"
                   >
                     <option value="" disabled>
                       Select company size
@@ -238,6 +240,7 @@ const RegistrationForm = ({ role, onRoleChange, onShowLogin }) => {
                     name="workLocation"
                     type="text"
                     placeholder="Enter company location"
+                    data-testid="company-location"
                   />
                 </label>
               </div>

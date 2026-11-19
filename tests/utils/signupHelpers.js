@@ -13,3 +13,17 @@ export async function fillApplicantForm(page, data) {
 export async function submitSignup(page) {
   await page.getByTestId("create-Btn").click();
 }
+
+
+export async function fillRecruiterForm(page, data) {
+  await page.getByTestId("name-field").fill(data.fullName);
+  await page.getByTestId("email-address").fill(data.email);
+  await page.getByTestId("password-field").fill(data.password);
+  await page.getByTestId("confirm-password").fill(data.confirmPassword);
+  await page.getByTestId("company-name").fill(data.companyName);
+  await page.getByTestId("company-size").selectOption(data.companySize)
+  await page.getByTestId("company-location").fill(data.companyLocation);
+
+    await page.getByTestId("agreement-field").check();
+
+}
